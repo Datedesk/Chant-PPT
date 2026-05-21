@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Chants Liturgiques - Paroisse Notre-Dame du Ventoux</title>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <!-- PptxGenJS - Multiple CDN sources for reliability -->
+    <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js" 
+            onerror="this.onerror=null; this.src='https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js'">
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e3a5f;
+            --primary-light: #2d5a8f;
+            --accent: #c9a961;
+            --accent-light: #e8d4a0;
+            --bg: #fafbfc;
+            --surface: #ffffff;
+            --text: #1a1a1a;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --success: #059669;
+            --danger: #ef4444;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecf1 100%);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 1rem;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 0.5rem;
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .cloud-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--surface);
+            border-radius: 1rem;
+            padding: 1rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .panel-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+        }
+
+        .controls .btn {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .search-box, .filter-select {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .search-box:focus, .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+        }
+
+        .filter-select {
+            background: var(--surface);
+            cursor: pointer;
+            max-width: 160px;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .btn-accent:hover:not(:disabled) {
+            background: var(--accent-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #047857;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .chants-list {
+            max-height: 78vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+        }
+
+        .chant-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .chant-item:last-child {
+            border-bottom: none;
+        }
+
+        .chant-item:hover {
+            background: #f9fafb;
+        }
+
+        .chant-item.selected {
+            background: #eff6ff;
+            border-left: 4px solid var(--primary);
+        }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .chant-info {
+            flex: 1;
+        }
+
+        .chant-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .chant-meta {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .chant-category {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: var(--accent-light);
+            color: var(--primary);
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.5rem;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+            border-radius: 0.25rem;
+        }
+
+        .action-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .action-btn.delete:hover {
+            color: var(--danger);
+            background: #fee2e2;
+        }
+
+        .action-btn.edit-btn:hover {
+            color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .selection-panel {
+            position: sticky;
+            top: 2rem;
+        }
+
+        .selected-count {
+            background: var(--accent-light);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .selected-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+        }
+
+        .selected-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .selected-item:last-child {
+            border-bottom: none;
+        }
+
+        .remove-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 1.25rem;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+        }
+
+        .remove-btn:hover {
+            background: #fee2e2;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #f3f4f6;
+            color: var(--text);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+        }
+
+        .form-textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-top: 0.125rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--primary);
+        }
+
+        .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .sync-indicator {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--surface);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            z-index: 100;
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .sync-dot.error {
+            background: var(--danger);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .config-notice {
+            background: #fef3c7;
+            border: 2px solid #fbbf24;
+            color: #92400e;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .config-notice h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .config-notice code {
+            background: #fffbeb;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION FIREBASE
+        // ============================================
+        // IMPORTANT: Remplacez ces valeurs par celles de votre projet Firebase
+        const firebaseConfig = {
+
+  apiKey: "AIzaSyDqnqnpRT3D2RJGg7AUiuMEkoqupviQXH8",
+
+  authDomain: "chants-liturgiques-ndv.firebaseapp.com",
+
+  databaseURL: "https://chants-liturgiques-ndv-default-rtdb.europe-west1.firebasedatabase.app",
+
+  projectId: "chants-liturgiques-ndv",
+
+  storageBucket: "chants-liturgiques-ndv.firebasestorage.app",
+
+  messagingSenderId: "1053208125591",
+
+  appId: "1:1053208125591:web:0a4156f2f9e00cee42c9d2"
+
+};
+
+
+        // Vérifier si Firebase est configuré
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "VOTRE_API_KEY";
+
+        // ============================================
+        // INITIALISATION
+        // ============================================
+        let db = null;
+        let chantsRef = null;
+        let categoriesRef = null;
+
+        if (isFirebaseConfigured) {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
+            chantsRef = db.ref('chants');
+            categoriesRef = db.ref('categories');
+        }
+
+        // ============================================
+        // DONNÉES INITIALES
+        // ============================================
+        const INITIAL_CHANTS = [
+            {
+                id: '1',
+                titre: 'Alléluia, Christ est ressuscité',
+                categorie: 'Pâques',
+                auteur: 'Communauté de l\'Emmanuel',
+                paroles: `Alléluia, alléluia, alléluia !
+Christ est ressuscité, alléluia !
+
+Couplet 1:
+La pierre est roulée, le tombeau est vide,
+Christ est ressuscité, alléluia !
+Les anges ont chanté la victoire du Christ,
+Il est vivant pour toujours !
+
+Alléluia, alléluia, alléluia !
+Christ est ressuscité, alléluia !
+
+Couplet 2:
+Il a vaincu la mort, il nous donne la vie,
+Christ est ressuscité, alléluia !
+Chantons avec joie, proclamons sa gloire,
+Il est vivant pour toujours !
+
+Alléluia, alléluia, alléluia !
+Christ est ressuscité, alléluia !`
+            },
+            {
+                id: '2',
+                titre: 'Notre Père',
+                categorie: 'Prière',
+                auteur: 'Traditionnel',
+                paroles: `Notre Père, qui es aux cieux,
+Que ton nom soit sanctifié,
+Que ton règne vienne,
+Que ta volonté soit faite sur la terre comme au ciel.
+
+Donne-nous aujourd'hui notre pain de ce jour.
+Pardonne-nous nos offenses,
+Comme nous pardonnons aussi à ceux qui nous ont offensés.
+Et ne nous laisse pas entrer en tentation,
+Mais délivre-nous du Mal.
+
+Amen.`
+            },
+            {
+                id: '3',
+                titre: 'Je vous salue Marie',
+                categorie: 'Prière Mariale',
+                auteur: 'Traditionnel',
+                paroles: `Je vous salue Marie, pleine de grâce,
+Le Seigneur est avec vous,
+Vous êtes bénie entre toutes les femmes,
+Et Jésus, le fruit de vos entrailles, est béni.
+
+Sainte Marie, Mère de Dieu,
+Priez pour nous, pauvres pécheurs,
+Maintenant et à l'heure de notre mort.
+
+Amen.`
+            },
+            {
+                id: '4',
+                titre: 'Gloire à Dieu',
+                categorie: 'Ordinaire',
+                auteur: 'Liturgie',
+                paroles: `Gloire à Dieu au plus haut des cieux,
+Et paix sur la terre aux hommes qu'il aime.
+
+Nous te louons, nous te bénissons, nous t'adorons,
+Nous te glorifions, nous te rendons grâce,
+Pour ton immense gloire,
+Seigneur Dieu, Roi du ciel,
+Dieu le Père tout-puissant.
+
+Seigneur, Fils unique, Jésus Christ,
+Seigneur Dieu, Agneau de Dieu, le Fils du Père,
+Toi qui enlèves le péché du monde,
+Prends pitié de nous.
+Toi qui enlèves le péché du monde,
+Reçois notre prière.
+Toi qui es assis à la droite du Père,
+Prends pitié de nous.
+
+Car toi seul es saint,
+Toi seul es Seigneur,
+Toi seul es le Très-Haut,
+Jésus Christ, avec le Saint-Esprit
+Dans la gloire de Dieu le Père.
+
+Amen.`
+            },
+            {
+                id: '5',
+                titre: 'Agneau de Dieu',
+                categorie: 'Ordinaire',
+                auteur: 'Liturgie',
+                paroles: `Agneau de Dieu, qui enlèves le péché du monde,
+Prends pitié de nous.
+
+Agneau de Dieu, qui enlèves le péché du monde,
+Prends pitié de nous.
+
+Agneau de Dieu, qui enlèves le péché du monde,
+Donne-nous la paix.`
+            }
+        ];
+
+        const DEFAULT_CATEGORIES = [
+            'Entrée',
+            'Offertoire',
+            'Communion',
+            'Sortie',
+            'Pâques',
+            'Noël',
+            'Avent',
+            'Carême',
+            'Pentecôte',
+            'Prière',
+            'Prière Mariale',
+            'Ordinaire',
+            'Psaume',
+            'Alléluia',
+            'Autre'
+        ];
+
+        // ============================================
+        // APPLICATION
+        // ============================================
+        class ChantsApp {
+            constructor() {
+                this.chants = [];
+                this.categories = [];
+                this.selectedChants = [];
+                this.searchTerm = '';
+                this.categoryFilter = 'Tous';
+                this.sortBy = 'titre';
+                this.showAddModal = false;
+                this.showEditModal = false;
+                this.showCategoriesModal = false;
+                this.editingChant = null;
+                this.isGenerating = false;
+                this.isLoading = true;
+                this.lastSync = null;
+                this.connectionStatus = 'connecting';
+                this.audioPlayer = null;
+                this.currentAudioBtn = null;
+
+                this.init();
+            }
+
+            async init() {
+                if (!isFirebaseConfigured) {
+                    this.isLoading = false;
+                    this.connectionStatus = 'error';
+                    this.render();
+                    return;
+                }
+
+                try {
+                    // Écouter les changements en temps réel des chants
+                    chantsRef.on('value', (snapshot) => {
+                        const data = snapshot.val();
+                        if (data) {
+                            this.chants = Object.values(data);
+                        } else {
+                            // Initialiser avec les chants d'exemple
+                            this.initializeDatabase();
+                        }
+                        this.lastSync = new Date();
+                        this.connectionStatus = 'connected';
+                        this.isLoading = false;
+                        this.render();
+                    });
+
+                    // Écouter les changements en temps réel des catégories
+                    categoriesRef.on('value', (snapshot) => {
+                        const data = snapshot.val();
+                        if (data) {
+                            this.categories = Object.values(data);
+                        } else {
+                            // Initialiser avec les catégories par défaut
+                            this.initializeCategories();
+                        }
+                        this.render();
+                    });
+
+                    // Détecter les erreurs de connexion
+                    const connectedRef = db.ref('.info/connected');
+                    connectedRef.on('value', (snap) => {
+                        if (snap.val() === true) {
+                            this.connectionStatus = 'connected';
+                        } else {
+                            this.connectionStatus = 'disconnected';
+                        }
+                        this.render();
+                    });
+
+                } catch (error) {
+                    console.error('Erreur Firebase:', error);
+                    this.connectionStatus = 'error';
+                    this.isLoading = false;
+                    this.render();
+                }
+            }
+
+            async initializeDatabase() {
+                try {
+                    const updates = {};
+                    INITIAL_CHANTS.forEach(chant => {
+                        updates[chant.id] = chant;
+                    });
+                    await chantsRef.update(updates);
+                } catch (error) {
+                    console.error('Erreur initialisation:', error);
+                }
+            }
+
+            async initializeCategories() {
+                try {
+                    const updates = {};
+                    DEFAULT_CATEGORIES.forEach((cat, index) => {
+                        updates[index] = cat;
+                    });
+                    await categoriesRef.set(updates);
+                    this.categories = DEFAULT_CATEGORIES;
+                } catch (error) {
+                    console.error('Erreur initialisation catégories:', error);
+                }
+            }
+
+            async addCategory(categoryName) {
+                try {
+                    const newCategories = [...this.categories, categoryName];
+                    await categoriesRef.set(newCategories);
+                } catch (error) {
+                    console.error('Erreur ajout catégorie:', error);
+                    alert('❌ Erreur lors de l\'ajout de la catégorie');
+                }
+            }
+
+            async renameCategory(oldName, newName) {
+                try {
+                    // Mettre à jour la liste des catégories
+                    const newCategories = this.categories.map(cat => 
+                        cat === oldName ? newName : cat
+                    );
+                    await categoriesRef.set(newCategories);
+
+                    // Mettre à jour tous les chants qui utilisent cette catégorie
+                    const updates = {};
+                    this.chants.forEach(chant => {
+                        if (chant.categorie === oldName) {
+                            updates[`${chant.id}/categorie`] = newName;
+                        }
+                    });
+                    if (Object.keys(updates).length > 0) {
+                        await chantsRef.update(updates);
+                    }
+                } catch (error) {
+                    console.error('Erreur renommage catégorie:', error);
+                    alert('❌ Erreur lors du renommage de la catégorie');
+                }
+            }
+
+            async deleteCategory(categoryName) {
+                try {
+                    // Vérifier si des chants utilisent cette catégorie
+                    const chantsWithCategory = this.chants.filter(c => c.categorie === categoryName);
+                    
+                    if (chantsWithCategory.length > 0) {
+                        const confirmed = confirm(
+                            `⚠️ ${chantsWithCategory.length} chant(s) utilisent la catégorie "${categoryName}".\n\n` +
+                            `Ces chants seront déplacés vers "Autre".\n\n` +
+                            `Continuer ?`
+                        );
+                        if (!confirmed) return;
+
+                        // Déplacer les chants vers "Autre"
+                        const updates = {};
+                        chantsWithCategory.forEach(chant => {
+                            updates[`${chant.id}/categorie`] = 'Autre';
+                        });
+                        await chantsRef.update(updates);
+                    }
+
+                    // Supprimer la catégorie
+                    const newCategories = this.categories.filter(cat => cat !== categoryName);
+                    await categoriesRef.set(newCategories);
+                } catch (error) {
+                    console.error('Erreur suppression catégorie:', error);
+                    alert('❌ Erreur lors de la suppression de la catégorie');
+                }
+            }
+
+            async addChant(chantData) {
+                const chant = {
+                    ...chantData,
+                    id: Date.now().toString()
+                };
+                try {
+                    await chantsRef.child(chant.id).set(chant);
+                    this.showAddModal = false;
+                    this.render();
+                } catch (error) {
+                    console.error('Erreur ajout:', error);
+                    alert('❌ Erreur lors de l\'ajout du chant');
+                }
+            }
+
+            handleEditChant(chantId) {
+                const chant = this.chants.find(c => c.id === chantId);
+                if (chant) {
+                    this.editingChant = { ...chant };
+                    this.showEditModal = true;
+                    this.render();
+                }
+            }
+
+            async updateChant(chantData) {
+                try {
+                    await chantsRef.child(this.editingChant.id).update(chantData);
+                    this.showEditModal = false;
+                    this.editingChant = null;
+                    this.render();
+                } catch (error) {
+                    console.error('Erreur modification:', error);
+                    alert('❌ Erreur lors de la modification du chant');
+                }
+            }
+
+            async deleteChant(chantId) {
+                if (!confirm('Êtes-vous sûr de vouloir supprimer ce chant ? Cette action est irréversible.')) {
+                    return;
+                }
+                try {
+                    await chantsRef.child(chantId).remove();
+                    this.selectedChants = this.selectedChants.filter(id => id !== chantId);
+                    this.render();
+                } catch (error) {
+                    console.error('Erreur suppression:', error);
+                    alert('❌ Erreur lors de la suppression');
+                }
+            }
+
+            toggleChantSelection(chantId) {
+                if (this.selectedChants.includes(chantId)) {
+                    this.selectedChants = this.selectedChants.filter(id => id !== chantId);
+                } else {
+                    this.selectedChants.push(chantId);
+                }
+                this.render();
+            }
+
+            removeFromSelection(chantId) {
+                this.selectedChants = this.selectedChants.filter(id => id !== chantId);
+                this.render();
+            }
+
+            getFilteredChants() {
+                let filtered = [...this.chants];
+
+                // Filtre par catégorie
+                if (this.categoryFilter !== 'Tous') {
+                    filtered = filtered.filter(c => c.categorie === this.categoryFilter);
+                }
+
+                // Filtre par recherche - TRÈS STRICT pour éviter les faux positifs
+                if (this.searchTerm) {
+                    const term = this.searchTerm.toLowerCase().trim();
+                    
+                    // ÉTAPE 1 : Chercher d'abord dans titre, auteur et catégorie
+                    const primaryResults = filtered.filter(c => {
+                        const titre = (c.titre || '').toLowerCase();
+                        const auteur = (c.auteur || '').toLowerCase();
+                        const categorie = (c.categorie || '').toLowerCase();
+                        
+                        return titre.includes(term) || 
+                               auteur.includes(term) || 
+                               categorie.includes(term);
+                    });
+                    
+                    // Si on a des résultats dans titre/auteur/catégorie, on s'arrête là !
+                    if (primaryResults.length > 0) {
+                        filtered = primaryResults;
+                    } else {
+                        // ÉTAPE 2 : Seulement si AUCUN résultat, chercher dans les paroles
+                        // Et seulement pour les termes de 5+ caractères
+                        if (term.length >= 5) {
+                            filtered = filtered.filter(c => {
+                                const paroles = (c.paroles || '').toLowerCase();
+                                return paroles.includes(term);
+                            });
+                        } else {
+                            // Terme trop court et aucun résultat : retourner vide
+                            filtered = [];
+                        }
+                    }
+                }
+
+                // Tri
+                filtered.sort((a, b) => {
+                    if (this.sortBy === 'titre') {
+                        return (a.titre || '').localeCompare(b.titre || '');
+                    } else if (this.sortBy === 'categorie') {
+                        return (a.categorie || '').localeCompare(b.categorie || '');
+                    } else if (this.sortBy === 'auteur') {
+                        return (a.auteur || '').localeCompare(b.auteur || '');
+                    }
+                    return 0;
+                });
+
+                return filtered;
+            }
+
+            getCategories() {
+                return ['Tous', ...this.categories.sort()];
+            }
+
+            async generatePPT() {
+                if (this.selectedChants.length === 0) return;
+
+                // IMPORTANT : Récupérer le modèle AVANT le render() !
+                const modeleSelect = document.getElementById('modeleSelect');
+                const modele = modeleSelect ? modeleSelect.value : 'mazan';
+                console.log('Modèle sélectionné:', modele);
+
+                this.isGenerating = true;
+                this.render();
+
+                try {
+                    // Vérifier que PptxGenJS est disponible
+                    if (typeof PptxGenJS === 'undefined') {
+                        throw new Error('La bibliothèque PptxGenJS n\'est pas chargée. Vérifiez votre connexion Internet.');
+                    }
+
+                    // Fonction pour nettoyer le texte et éviter les caractères problématiques
+                    const cleanTextForPPT = (text) => {
+                        if (!text) return '';
+                        return text
+                            // Remplacer les guillemets typographiques par des guillemets simples
+                            .replace(/[""]/g, '"')
+                            .replace(/['']/g, "'")
+                            // Remplacer les tirets longs par des tirets courts
+                            .replace(/[—–]/g, '-')
+                            // Supprimer les caractères de contrôle (sauf retour à la ligne)
+                            .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, '')
+                            // Normaliser les retours à la ligne
+                            .replace(/\r\n/g, '\n')
+                            .replace(/\r/g, '\n')
+                            // Supprimer les espaces multiples
+                            .replace(/  +/g, ' ')
+                            .trim();
+                    };
+                    
+                    // Configuration selon le modèle
+                    const config = {
+                        mazan: {
+                            fontSize: 40,
+                            name: 'Mazan',
+                            maxLines: 4,           // Maximum 4 lignes par slide
+                            textX: -0.1,           // Déborde légèrement à gauche (centré)
+                            textY: 2.5,            // Position Y optimale
+                            textW: 10.2,           // Déborde légèrement à droite (centré)
+                            textH: 4.5,            // Hauteur de la zone de texte
+                            lineSpacing: 45,       // Interligne en points
+                            longVerseThreshold: 40 // Seuil pour verset long
+                        },
+                        caromb: {
+                            fontSize: 55,          // Police à 55pt
+                            name: 'Caromb',
+                            maxLines: 8,           // Maximum 8 lignes par slide (wrapping auto si >8)
+                            textX: 0.25,
+                            textY: 1,
+                            textW: 9.5,
+                            textH: 5.5,
+                            lineSpacing: 55,       // Interligne 55pt
+                            longVerseThreshold: 30 // Seuil réduit pour verset long
+                        }
+                    };
+                    
+                    const currentConfig = config[modele];
+                    console.log('Génération avec modèle:', modele, currentConfig);
+
+                    // Fonction pour diviser le texte en blocs de N lignes maximum (ESTIMATION RÉALISTE)
+                    const splitTextIntoBlocks = (text, maxLines, fontSize = 40, width = 9.5, longVerseThreshold = 40) => {
+                        if (!maxLines) return [{ text, fontSize }]; // Pas de limite
+                        
+                        // Diviser le texte par lignes (= versets de la poésie/chant)
+                        const verses = text.split('\n').filter(line => line.trim());
+                        
+                        console.log(`📜 Texte original : ${verses.length} verset(s)`);
+                        console.log(`📏 Seuil verset long : ${longVerseThreshold} caractères`);
+                        
+                        // Estimer combien de caractères par ligne selon la police
+                        const charsPerLine = Math.floor((width * 72) / (fontSize * 0.45));
+                        
+                        // SEUIL RÉALISTE pour déterminer si un verset tient sur 1 ligne
+                        // À 40pt (Mazan) : ~55 chars max par ligne (zone large 10.2")
+                        // À 55pt (Caromb) : ~30 chars max par ligne (grande police)
+                        const singleLineThreshold = fontSize <= 40 ? 55 : 30;
+                        
+                        console.log(`📐 Estimation : ${charsPerLine} chars/ligne à ${fontSize}pt (seuil 1 ligne: ${singleLineThreshold} chars)`);
+                        
+                        // Créer des blocs intelligemment : ajouter des versets jusqu'à atteindre maxLines
+                        const blocks = [];
+                        let i = 0;
+                        
+                        while (i < verses.length) {
+                            let currentBlockVerses = [];
+                            
+                            // Ajouter des versets jusqu'à atteindre maxLines
+                            while (i < verses.length) {
+                                const nextVerse = verses[i];
+                                const testBlock = [...currentBlockVerses, nextVerse];
+                                
+                                // ESTIMATION RÉALISTE : Compter combien de lignes chaque verset prendra
+                                let estimatedLinesNoWrap = 0;
+                                for (let v of testBlock) {
+                                    if (v.length <= singleLineThreshold) {
+                                        // Verset court : 1 ligne
+                                        estimatedLinesNoWrap += 1;
+                                    } else {
+                                        // Verset long : plusieurs lignes selon longueur
+                                        estimatedLinesNoWrap += Math.ceil(v.length / charsPerLine);
+                                    }
+                                }
+                                
+                                console.log(`   Test ajout "${nextVerse.substring(0, 25)}..." (${nextVerse.length} chars) : ${estimatedLinesNoWrap} lignes estimées`);
+                                
+                                // Si l'ajout de ce verset dépasse maxLines
+                                if (estimatedLinesNoWrap > maxLines && currentBlockVerses.length > 0) {
+                                    // Ne pas ajouter ce verset, arrêter le bloc actuel
+                                    console.log(`⚠️ Ajout dépasserait ${maxLines} lignes, arrêt du bloc`);
+                                    break;
+                                }
+                                
+                                // Ajouter le verset au bloc
+                                currentBlockVerses.push(nextVerse);
+                                i++;
+                                
+                                // Si on atteint maxLines, arrêter
+                                if (estimatedLinesNoWrap >= maxLines) {
+                                    console.log(`✅ Bloc atteint ~${maxLines} lignes, arrêt`);
+                                    break;
+                                }
+                            }
+                            
+                            // Créer le bloc
+                            if (currentBlockVerses.length > 0) {
+                                // Calculer les lignes estimées finales avec seuil réaliste
+                                let finalEstimatedLines = 0;
+                                for (let v of currentBlockVerses) {
+                                    if (v.length <= singleLineThreshold) {
+                                        finalEstimatedLines += 1;
+                                    } else {
+                                        finalEstimatedLines += Math.ceil(v.length / charsPerLine);
+                                    }
+                                }
+                                
+                                // DÉCISION : Faire le wrapping SEULEMENT si > maxLines
+                                let blockText;
+                                if (finalEstimatedLines > maxLines) {
+                                    // WRAPPING NÉCESSAIRE : joindre les versets
+                                    blockText = currentBlockVerses.join(' ');
+                                    const joinedEstimate = Math.ceil(blockText.length / charsPerLine);
+                                    console.log(`🔗 Bloc ${blocks.length + 1} : ${currentBlockVerses.length} versets joints (wrapping nécessaire) → ${blockText.length} chars → ~${joinedEstimate} lignes`);
+                                } else {
+                                    // PAS DE WRAPPING : garder les retours à ligne
+                                    blockText = currentBlockVerses.join('\n');
+                                    console.log(`✅ Bloc ${blocks.length + 1} : ${currentBlockVerses.length} versets avec retours à ligne → ${finalEstimatedLines} lignes estimées`);
+                                }
+                                
+                                blocks.push({ text: blockText, fontSize: fontSize });
+                            }
+                        }
+                        
+                        console.log(`📄 Résultat : ${blocks.length} diapo(s) créée(s)`);
+                        
+                        return blocks;
+                    };
+
+                    // LOGIQUE SIMPLIFIÉE : Garder les versets (retours à ligne originaux)
+                    const optimizeFor4Lines = (text, maxLines, configFontSize) => {
+                        // Utiliser la fontSize de la config
+                        const fontSize = configFontSize || 40;
+                        
+                        // Les versets sont déjà séparés par des retours à ligne
+                        // On garde cette structure intacte
+                        const verses = text.split('\n').filter(line => line.trim());
+                        
+                        console.log(`🎵 Optimisation : ${verses.length} verset(s) détecté(s)`);
+                        
+                        // ÉTAPE 1 : Si ≤ maxLines versets, tout tient sur une diapo
+                        if (verses.length <= maxLines) {
+                            console.log(`✅ ÉTAPE 1 : Texte OK (≤ ${maxLines} versets)`);
+                            return { text, fontSize: fontSize };
+                        }
+                        
+                        // ÉTAPE 2 : Si > maxLines versets, on garde les versets
+                        // splitTextIntoBlocks se chargera de diviser en blocs
+                        console.log(`📄 ÉTAPE 2 : Division en plusieurs diapos nécessaire (> ${maxLines} versets)`);
+                        return { text, fontSize: fontSize };
+                    };
+
+                    // Fonction pour calculer l'espacement entre les lignes
+                    const calculateLineSpacing = (text, maxLines) => {
+                        // Pour Mazan : interligne fixe de 45pt
+                        // Pour Caromb : interligne normal (100%)
+                        return maxLines ? 45 : 100;
+                    };
+
+                    const pptx = new PptxGenJS();
+
+                    // Utiliser le layout standard 4:3 (centré automatiquement)
+                    pptx.layout = 'LAYOUT_4x3';
+
+                    // Ajouter chaque chant sélectionné
+                    const chantsToAdd = this.selectedChants
+                        .map(id => this.chants.find(c => c.id === id))
+                        .filter(Boolean);
+
+                    for (let i = 0; i < chantsToAdd.length; i++) {
+                        const chant = chantsToAdd[i];
+                        console.log('Traitement du chant:', chant.titre);
+                        
+                        // DIAPO NOIRE entre les chants (pas avant le premier chant)
+                        if (i > 0) {
+                            const blackSlide = pptx.addSlide();
+                            blackSlide.background = { fill: '000000' };
+                        }
+
+                        // Parser les paroles EN CONSERVANT L'ORDRE ORIGINAL
+                        const paragraphs = chant.paroles.split('\n\n').map(p => p.trim()).filter(p => p);
+                        
+                        // Identifier chaque paragraphe : refrain ou couplet
+                        const structure = [];
+                        let refrain = null;
+                        
+                        for (let paragraph of paragraphs) {
+                            // Détecter si c'est un couplet (commence par un numéro)
+                            const coupletMatch = paragraph.match(/^(\d+)[–\-\.\)]\s*(.*)/s);
+                            
+                            if (coupletMatch) {
+                                // C'est un couplet
+                                const numero = coupletMatch[1];
+                                const text = paragraph.replace(/^\d+[–\-\.\)]\s*/, '').trim();
+                                structure.push({
+                                    type: 'couplet',
+                                    numero: numero,
+                                    text: text
+                                });
+                            } else if (paragraph.length > 0) {
+                                // C'est le refrain (paragraphe sans numéro)
+                                // Stocker le refrain pour le réutiliser
+                                if (!refrain) {
+                                    refrain = paragraph;
+                                }
+                                structure.push({
+                                    type: 'refrain',
+                                    text: paragraph
+                                });
+                            }
+                        }
+
+                        console.log('Structure du chant:', structure.length, 'éléments');
+
+                        // Générer les slides EN RESPECTANT L'ORDRE ORIGINAL
+                        for (let j = 0; j < structure.length; j++) {
+                            const element = structure[j];
+                            
+                            // NOUVELLE LOGIQUE EN 3 ÉTAPES pour optimiser le texte
+                            const optimized = optimizeFor4Lines(element.text, currentConfig.maxLines, currentConfig.fontSize);
+                            
+                            // Diviser le texte optimisé en blocs selon le modèle (avec fontSize)
+                            const textBlocks = splitTextIntoBlocks(
+                                optimized.text, 
+                                currentConfig.maxLines,
+                                optimized.fontSize,
+                                currentConfig.textW || 9.5,
+                                currentConfig.longVerseThreshold || 40
+                            );
+                            
+                            // Créer une slide pour chaque bloc
+                            for (let block of textBlocks) {
+                                const slide = pptx.addSlide();
+                                slide.background = { fill: '000000' };
+                                
+                                // Utiliser l'interligne de la config
+                                const lineSpacing = currentConfig.lineSpacing;
+                                
+                                // Ajouter le texte avec une seule zone
+                                slide.addText(cleanTextForPPT(block.text), {
+                                    x: currentConfig.textX || 0.5,
+                                    y: currentConfig.textY,
+                                    w: currentConfig.textW || 9,
+                                    h: currentConfig.textH,
+                                    fontSize: block.fontSize,
+                                    color: 'FFFFFF',
+                                    bold: true,
+                                    align: 'center',
+                                    valign: 'top',
+                                    lineSpacing: lineSpacing
+                                });
+                            }
+                            
+                            // Après chaque couplet, ajouter le refrain
+                            if (element.type === 'couplet' && refrain) {
+                                const nextElement = structure[j + 1];
+                                if (!nextElement || nextElement.type !== 'refrain') {
+                                    const optimizedRefrain = optimizeFor4Lines(refrain, currentConfig.maxLines, currentConfig.fontSize);
+                                    
+                                    const refrainBlocks = splitTextIntoBlocks(
+                                        optimizedRefrain.text, 
+                                        currentConfig.maxLines,
+                                        optimizedRefrain.fontSize,
+                                        currentConfig.textW || 9.5,
+                                        currentConfig.longVerseThreshold || 40
+                                    );
+                                    
+                                    for (let block of refrainBlocks) {
+                                        const refrainSlide = pptx.addSlide();
+                                        refrainSlide.background = { fill: '000000' };
+                                        
+                                        // Utiliser l'interligne de la config
+                                        const lineSpacing = currentConfig.lineSpacing;
+                                        
+                                        refrainSlide.addText(cleanTextForPPT(block.text), {
+                                            x: currentConfig.textX || 0.5,
+                                            y: currentConfig.textY,
+                                            w: currentConfig.textW || 9,
+                                            h: currentConfig.textH,
+                                            fontSize: block.fontSize,
+                                            color: 'FFFFFF',
+                                            bold: true,
+                                            align: 'center',
+                                            valign: 'top',
+                                            lineSpacing: lineSpacing
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }  // Fin for chantsToAdd
+
+                    // Générer le fichier avec le nom du modèle
+                    const fileName = `${currentConfig.name}.pptx`;
+                    
+                    console.log('Début de la génération du fichier...');
+                    await pptx.writeFile({ fileName: fileName });
+                    console.log('Fichier généré avec succès !');
+
+                    alert(`✅ Présentation générée avec succès !\n\nModèle : ${currentConfig.name}\nFormat : 4:3\nFichier : ${fileName}`);
+                } catch (error) {
+                    console.error('Erreur détaillée:', error);
+                    alert('❌ Erreur lors de la génération : ' + error.message);
+                } finally {
+                    this.isGenerating = false;
+                    this.render();
+                }
+            }
+
+            render() {
+                const app = document.getElementById('app');
+                
+                // Sauvegarder l'élément actif et sa position de curseur AVANT le render
+                const activeElement = document.activeElement;
+                const isSearchInput = activeElement && activeElement.id === 'searchInput';
+                const cursorPosition = isSearchInput ? activeElement.selectionStart : null;
+                
+                if (!isFirebaseConfigured) {
+                    app.innerHTML = this.renderConfigNotice();
+                    return;
+                }
+
+                if (this.isLoading) {
+                    app.innerHTML = this.renderLoading();
+                    return;
+                }
+
+                app.innerHTML = this.renderApp();
+                this.attachEventListeners();
+                
+                // Restaurer le focus et la position du curseur APRÈS le render
+                if (isSearchInput) {
+                    const searchInput = document.getElementById('searchInput');
+                    if (searchInput) {
+                        searchInput.focus();
+                        if (cursorPosition !== null) {
+                            searchInput.setSelectionRange(cursorPosition, cursorPosition);
+                        }
+                    }
+                }
+            }
+
+            renderConfigNotice() {
+                return `
+                    <div class="app-container">
+                        <div class="config-notice">
+                            <h3>⚙️ Configuration Firebase requise</h3>
+                            <p style="margin-bottom: 1rem;">
+                                Pour utiliser cette application avec une base de données partagée, vous devez configurer Firebase.
+                            </p>
+                            <ol style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                                <li>Créez un projet Firebase sur <a href="https://console.firebase.google.com" target="_blank" style="color: #1e3a5f; font-weight: 600;">console.firebase.google.com</a></li>
+                                <li>Activez "Realtime Database"</li>
+                                <li>Copiez votre configuration Firebase</li>
+                                <li>Remplacez les valeurs dans le fichier HTML (lignes 486-493)</li>
+                            </ol>
+                            <p>
+                                <strong>Instructions détaillées :</strong> Consultez le fichier <code>INSTRUCTIONS_FIREBASE.md</code> inclus.
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderLoading() {
+                return `
+                    <div class="app-container">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Connexion à la base de données...</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderApp() {
+                const filteredChants = this.getFilteredChants();
+                const categories = this.getCategories();
+                const selectedChantsData = this.selectedChants
+                    .map(id => this.chants.find(c => c.id === id))
+                    .filter(Boolean);
+
+                return `
+                    <div class="app-container">
+                        <div class="main-grid">
+                            ${this.renderBibliothèque(filteredChants, categories)}
+                            ${this.renderSelection(selectedChantsData)}
+                        </div>
+
+                        ${this.renderSyncIndicator()}
+                        ${this.showAddModal ? this.renderAddModal() : ''}
+                        ${this.showEditModal ? this.renderEditModal() : ''}
+                        ${this.showCategoriesModal ? this.renderCategoriesModal() : ''}
+                    </div>
+                `;
+            }
+
+            renderHeader() {
+                return `
+                    <header class="header">
+                        <div style="display: flex; align-items: center; gap: 1rem; justify-content: center;">
+                            <img src="data:image/jpeg;base64,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" 
+                                 alt="Logo Paroisse Notre-Dame du Ventoux" 
+                                 style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" />
+                            <div>
+                                <h1 style="margin: 0; font-size: 1.3rem;">🎵 Gestionnaire de Chants Liturgiques</h1>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem;">Base de données partagée en ligne</p>
+                            </div>
+                        </div>
+                        <div class="cloud-badge" style="margin-top: 0.5rem;">
+                            ☁️ Firebase • Accessible à toute l'équipe
+                        </div>
+                    </header>
+                `;
+            }
+
+            renderStats(categories) {
+                return `
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-value">${this.chants.length}</div>
+                            <div class="stat-label">Chants disponibles</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${categories.length - 1}</div>
+                            <div class="stat-label">Catégories</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderBibliothèque(filteredChants, categories) {
+                return `
+                    <div class="panel">
+                        <h2 class="panel-title">📚 Bibliothèque de Chants</h2>
+
+                        <div class="controls">
+                            <input
+                                type="text"
+                                class="search-box"
+                                placeholder="🔍 Rechercher un chant..."
+                                value="${this.searchTerm}"
+                                id="searchInput"
+                            />
+                            <select class="filter-select" id="categoryFilter">
+                                ${categories.map(cat => `
+                                    <option value="${cat}" ${cat === this.categoryFilter ? 'selected' : ''}>
+                                        ${cat}
+                                    </option>
+                                `).join('')}
+                            </select>
+                            <select class="filter-select" id="sortSelect">
+                                <option value="titre" ${this.sortBy === 'titre' ? 'selected' : ''}>Trier par titre</option>
+                                <option value="categorie" ${this.sortBy === 'categorie' ? 'selected' : ''}>Trier par catégorie</option>
+                                <option value="auteur" ${this.sortBy === 'auteur' ? 'selected' : ''}>Trier par auteur</option>
+                            </select>
+                            <button class="btn btn-accent" id="addChantBtn">
+                                ➕ Nouveau chant
+                            </button>
+                            <button class="btn btn-primary" id="manageCategoriesBtn" title="Gérer les catégories">
+                                🏷️ Catégories
+                            </button>
+                        </div>
+
+                        ${filteredChants.length === 0 ? `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🎼</div>
+                                <p>Aucun chant trouvé</p>
+                            </div>
+                        ` : `
+                            <div class="chants-list">
+                                ${filteredChants.map(chant => `
+                                    <div class="chant-item ${this.selectedChants.includes(chant.id) ? 'selected' : ''}"
+                                         data-chant-id="${chant.id}">
+                                        <input
+                                            type="checkbox"
+                                            class="checkbox chant-checkbox"
+                                            ${this.selectedChants.includes(chant.id) ? 'checked' : ''}
+                                            data-chant-id="${chant.id}"
+                                        />
+                                        <div class="chant-info">
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <div class="chant-title">${chant.titre}</div>
+                                                ${chant.audioUrl ? `
+                                                    <button 
+                                                        class="audio-btn" 
+                                                        data-audio-url="${chant.audioUrl}"
+                                                        data-chant-title="${chant.titre}"
+                                                        title="Écouter le chant"
+                                                        style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0; display: flex; align-items: center;"
+                                                    >
+                                                        ▶️
+                                                    </button>
+                                                ` : ''}
+                                                ${chant.pdfUrl ? `
+                                                    <button 
+                                                        class="pdf-btn" 
+                                                        data-pdf-url="${chant.pdfUrl}"
+                                                        data-chant-title="${chant.titre}"
+                                                        title="Voir la partition PDF"
+                                                        style="background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 0; display: flex; align-items: center;"
+                                                    >
+                                                        📄
+                                                    </button>
+                                                ` : ''}
+                                            </div>
+                                            <div class="chant-meta">
+                                                <span class="chant-category">${chant.categorie}</span>
+                                                ${chant.auteur}
+                                            </div>
+                                        </div>
+                                        <div class="action-buttons">
+                                            <button class="action-btn edit-btn" data-edit-id="${chant.id}" title="Modifier">
+                                                ✏️
+                                            </button>
+                                            <button class="action-btn delete" data-delete-id="${chant.id}" title="Supprimer">
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
+                    </div>
+                `;
+            }
+
+            renderSelection(selectedChantsData) {
+                const categories = this.getCategories();
+                
+                return `
+                    <div class="selection-panel">
+                        ${this.renderHeader()}
+                        ${this.renderStats(categories)}
+                        
+                        <div class="panel">
+                            <h2 class="panel-title">✅ Sélection</h2>
+
+                            <div class="selected-count">
+                                ${this.selectedChants.length} ${this.selectedChants.length > 1 ? 'chants sélectionnés' : 'chant sélectionné'}
+                            </div>
+
+                            <div style="margin-bottom: 1rem; padding: 1rem; background: #f3f4f6; border-radius: 0.5rem;">
+                                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text);">
+                                    📍 Modèle de présentation
+                                </label>
+                                <select id="modeleSelect" class="form-input" style="width: 100%;">
+                                    <option value="mazan">Église de Mazan (Police 40)</option>
+                                    <option value="caromb">Église de Caromb (Police 55)</option>
+                                </select>
+                            </div>
+
+                            ${selectedChantsData.length > 0 ? `
+                                <div class="selected-list">
+                                    ${selectedChantsData.map((chant, index) => `
+                                        <div class="selected-item">
+                                            <div>
+                                                <strong>${index + 1}.</strong> ${chant.titre}
+                                            </div>
+                                            <button class="remove-btn" data-remove-id="${chant.id}">×</button>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+
+                            <button
+                                class="btn btn-success"
+                                style="width: 100%"
+                                id="generatePPTBtn"
+                                ${this.selectedChants.length === 0 || this.isGenerating ? 'disabled' : ''}
+                            >
+                                ${this.isGenerating ? `
+                                    <div class="spinner" style="width: 20px; height: 20px; margin: 0"></div>
+                                    Génération...
+                                ` : '📊 Générer le PowerPoint'}
+                            </button>
+
+                            ${this.selectedChants.length > 0 ? `
+                                <button
+                                    class="btn btn-primary"
+                                    style="width: 100%; margin-top: 0.5rem"
+                                    id="clearSelectionBtn"
+                                >
+                                    🗑️ Tout désélectionner
+                                </button>
+                            ` : ''}
+                        </div>
+
+                        ${this.renderRecentChants()}
+                    </div>
+                `;
+            }
+
+            renderRecentChants() {
+                // Trier les chants par ID décroissant (les plus récents en premier)
+                const recentChants = [...this.chants]
+                    .sort((a, b) => parseInt(b.id) - parseInt(a.id))
+                    .slice(0, 3);
+
+                if (recentChants.length === 0) return '';
+
+                return `
+                    <div class="panel" style="margin-top: 1rem;">
+                        <h2 class="panel-title">🆕 Derniers ajouts</h2>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            ${recentChants.map(chant => `
+                                <div style="padding: 0.5rem 0.75rem; background: #f9fafb; border-radius: 0.375rem; border-left: 3px solid var(--accent); font-size: 0.9rem;">
+                                    ${chant.titre}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderSyncIndicator() {
+                if (!this.lastSync) return '';
+
+                const statusText = {
+                    'connected': 'Connecté',
+                    'disconnected': 'Déconnecté',
+                    'connecting': 'Connexion...',
+                    'error': 'Erreur de connexion'
+                };
+
+                return `
+                    <div class="sync-indicator">
+                        <div class="sync-dot ${this.connectionStatus !== 'connected' ? 'error' : ''}"></div>
+                        ${statusText[this.connectionStatus]} • ${this.lastSync.toLocaleTimeString('fr-FR')}
+                    </div>
+                `;
+            }
+
+            renderAddModal() {
+                return `
+                    <div class="modal" id="addModal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2 class="modal-title">➕ Ajouter un nouveau chant</h2>
+                                <button class="close-btn" id="closeModalBtn">×</button>
+                            </div>
+
+                            <form id="addChantForm">
+                                <div class="form-group">
+                                    <label class="form-label">Titre *</label>
+                                    <input type="text" class="form-input" id="titreInput" required />
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Catégorie</label>
+                                    <select class="form-input" id="categorieInput">
+                                        ${this.categories.map(cat => `
+                                            <option value="${cat}">${cat}</option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Auteur</label>
+                                    <input type="text" class="form-input" id="auteurInput" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">🎵 Audio HTTP (lien MP3)</label>
+                                    <input type="url" class="form-input" id="audioUrlInput" placeholder="https://exemple.com/fichier.mp3" />
+                                    <small style="color: var(--text-muted); font-size: 0.85rem;">Lien direct vers un fichier MP3 pour écouter le chant</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">📄 Partition PDF (lien)</label>
+                                    <input type="url" class="form-input" id="pdfUrlInput" placeholder="https://exemple.com/partition.pdf" />
+                                    <small style="color: var(--text-muted); font-size: 0.85rem;">Lien direct vers la partition en PDF</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Paroles *</label>
+                                    <textarea
+                                        class="form-input form-textarea"
+                                        id="parolesInput"
+                                        required
+                                        placeholder="Copiez les paroles complètes du chant ici..."
+                                    ></textarea>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" class="btn btn-primary" id="cancelFormBtn">
+                                        Annuler
+                                    </button>
+                                    <button type="submit" class="btn btn-success">
+                                        ✅ Ajouter le chant
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderEditModal() {
+                if (!this.editingChant) return '';
+                
+                return `
+                    <div class="modal" id="editModal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2 class="modal-title">✏️ Modifier le chant</h2>
+                                <button class="close-btn" id="closeEditModalBtn">×</button>
+                            </div>
+
+                            <form id="editChantForm">
+                                <div class="form-group">
+                                    <label class="form-label">Titre *</label>
+                                    <input type="text" class="form-input" id="editTitreInput" value="${this.editingChant.titre}" required />
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Catégorie</label>
+                                    <select class="form-input" id="editCategorieInput">
+                                        ${this.categories.map(cat => `
+                                            <option value="${cat}" ${cat === this.editingChant.categorie ? 'selected' : ''}>${cat}</option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Auteur</label>
+                                    <input type="text" class="form-input" id="editAuteurInput" value="${this.editingChant.auteur || ''}" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">🎵 Audio HTTP (lien MP3)</label>
+                                    <input type="url" class="form-input" id="editAudioUrlInput" value="${this.editingChant.audioUrl || ''}" placeholder="https://exemple.com/fichier.mp3" />
+                                    <small style="color: var(--text-muted); font-size: 0.85rem;">Lien direct vers un fichier MP3 pour écouter le chant</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">📄 Partition PDF (lien)</label>
+                                    <input type="url" class="form-input" id="editPdfUrlInput" value="${this.editingChant.pdfUrl || ''}" placeholder="https://exemple.com/partition.pdf" />
+                                    <small style="color: var(--text-muted); font-size: 0.85rem;">Lien direct vers la partition en PDF</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Paroles *</label>
+                                    <textarea
+                                        class="form-input form-textarea"
+                                        id="editParolesInput"
+                                        required
+                                        placeholder="Copiez les paroles complètes du chant ici..."
+                                    >${this.editingChant.paroles}</textarea>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" class="btn btn-primary" id="cancelEditFormBtn">
+                                        Annuler
+                                    </button>
+                                    <button type="submit" class="btn btn-success">
+                                        ✅ Enregistrer les modifications
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderCategoriesModal() {
+                return `
+                    <div class="modal" id="categoriesModal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2 class="modal-title">🏷️ Gérer les catégories</h2>
+                                <button class="close-btn" id="closeCategoriesModalBtn">×</button>
+                            </div>
+
+                            <div style="margin-bottom: 1.5rem;">
+                                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text);">
+                                    Ajouter une catégorie
+                                </h3>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <input
+                                        type="text"
+                                        class="form-input"
+                                        id="newCategoryInput"
+                                        placeholder="Nom de la nouvelle catégorie..."
+                                        style="flex: 1;"
+                                    />
+                                    <button class="btn btn-success" id="addCategoryBtn">
+                                        ➕ Ajouter
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text);">
+                                    Catégories existantes (${this.categories.length})
+                                </h3>
+                                <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 0.5rem;">
+                                    ${this.categories.map(cat => `
+                                        <div class="category-item" style="padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="font-weight: 500;">${cat}</span>
+                                            <div style="display: flex; gap: 0.5rem;">
+                                                <button
+                                                    class="action-btn"
+                                                    data-rename-category="${cat}"
+                                                    title="Renommer"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    class="action-btn delete"
+                                                    data-delete-category="${cat}"
+                                                    title="Supprimer"
+                                                    ${cat === 'Autre' ? 'disabled' : ''}
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <div class="form-actions" style="margin-top: 1.5rem;">
+                                <button class="btn btn-primary" id="closeCategoriesBtn">
+                                    Fermer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            attachEventListeners() {
+                // Recherche
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        this.searchTerm = e.target.value;
+                        this.render();
+                    });
+                }
+
+                // Filtres
+                const categoryFilter = document.getElementById('categoryFilter');
+                if (categoryFilter) {
+                    categoryFilter.addEventListener('change', (e) => {
+                        this.categoryFilter = e.target.value;
+                        this.render();
+                    });
+                }
+
+                const sortSelect = document.getElementById('sortSelect');
+                if (sortSelect) {
+                    sortSelect.addEventListener('change', (e) => {
+                        this.sortBy = e.target.value;
+                        this.render();
+                    });
+                }
+
+                // Boutons principaux
+                const addChantBtn = document.getElementById('addChantBtn');
+                if (addChantBtn) {
+                    addChantBtn.addEventListener('click', () => {
+                        this.showAddModal = true;
+                        this.render();
+                    });
+                }
+
+                const manageCategoriesBtn = document.getElementById('manageCategoriesBtn');
+                if (manageCategoriesBtn) {
+                    manageCategoriesBtn.addEventListener('click', () => {
+                        this.showCategoriesModal = true;
+                        this.render();
+                    });
+                }
+
+                // Sélection de chants
+                document.querySelectorAll('.chant-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', (e) => {
+                        e.stopPropagation();
+                        this.toggleChantSelection(e.target.dataset.chantId);
+                    });
+                });
+
+                document.querySelectorAll('.chant-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('action-btn') || 
+                            e.target.closest('.action-btn')) {
+                            return;
+                        }
+                        this.toggleChantSelection(item.dataset.chantId);
+                    });
+                });
+
+                // Suppression
+                document.querySelectorAll('[data-delete-id]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.deleteChant(btn.dataset.deleteId);
+                    });
+                });
+
+                // Édition
+                document.querySelectorAll('[data-edit-id]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.handleEditChant(btn.dataset.editId);
+                    });
+                });
+
+                // Retrait de la sélection
+                document.querySelectorAll('[data-remove-id]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.removeFromSelection(btn.dataset.removeId);
+                    });
+                });
+
+                // Génération PPT
+                const generatePPTBtn = document.getElementById('generatePPTBtn');
+                if (generatePPTBtn) {
+                    generatePPTBtn.addEventListener('click', () => {
+                        this.generatePPT();
+                    });
+                }
+
+                // Désélectionner tout
+                const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+                if (clearSelectionBtn) {
+                    clearSelectionBtn.addEventListener('click', () => {
+                        this.selectedChants = [];
+                        this.render();
+                    });
+                }
+
+                // Modal
+                const closeModalBtn = document.getElementById('closeModalBtn');
+                if (closeModalBtn) {
+                    closeModalBtn.addEventListener('click', () => {
+                        this.showAddModal = false;
+                        this.render();
+                    });
+                }
+
+                const cancelFormBtn = document.getElementById('cancelFormBtn');
+                if (cancelFormBtn) {
+                    cancelFormBtn.addEventListener('click', () => {
+                        this.showAddModal = false;
+                        this.render();
+                    });
+                }
+
+                const addModal = document.getElementById('addModal');
+                if (addModal) {
+                    addModal.addEventListener('click', (e) => {
+                        if (e.target.id === 'addModal') {
+                            this.showAddModal = false;
+                            this.render();
+                        }
+                    });
+                }
+
+                const addChantForm = document.getElementById('addChantForm');
+                if (addChantForm) {
+                    addChantForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const formData = {
+                            titre: document.getElementById('titreInput').value,
+                            categorie: document.getElementById('categorieInput').value,
+                            auteur: document.getElementById('auteurInput').value,
+                            audioUrl: document.getElementById('audioUrlInput').value,
+                            pdfUrl: document.getElementById('pdfUrlInput').value,
+                            paroles: document.getElementById('parolesInput').value
+                        };
+                        this.addChant(formData);
+                    });
+                }
+
+                // Modal d'édition
+                const closeEditModalBtn = document.getElementById('closeEditModalBtn');
+                if (closeEditModalBtn) {
+                    closeEditModalBtn.addEventListener('click', () => {
+                        this.showEditModal = false;
+                        this.editingChant = null;
+                        this.render();
+                    });
+                }
+
+                const cancelEditFormBtn = document.getElementById('cancelEditFormBtn');
+                if (cancelEditFormBtn) {
+                    cancelEditFormBtn.addEventListener('click', () => {
+                        this.showEditModal = false;
+                        this.editingChant = null;
+                        this.render();
+                    });
+                }
+
+                const editModal = document.getElementById('editModal');
+                if (editModal) {
+                    editModal.addEventListener('click', (e) => {
+                        if (e.target.id === 'editModal') {
+                            this.showEditModal = false;
+                            this.editingChant = null;
+                            this.render();
+                        }
+                    });
+                }
+
+                const editChantForm = document.getElementById('editChantForm');
+                if (editChantForm) {
+                    editChantForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const formData = {
+                            titre: document.getElementById('editTitreInput').value,
+                            categorie: document.getElementById('editCategorieInput').value,
+                            auteur: document.getElementById('editAuteurInput').value,
+                            audioUrl: document.getElementById('editAudioUrlInput').value,
+                            pdfUrl: document.getElementById('editPdfUrlInput').value,
+                            paroles: document.getElementById('editParolesInput').value
+                        };
+                        this.updateChant(formData);
+                    });
+                }
+
+                // Modal de gestion des catégories
+                const closeCategoriesModalBtn = document.getElementById('closeCategoriesModalBtn');
+                if (closeCategoriesModalBtn) {
+                    closeCategoriesModalBtn.addEventListener('click', () => {
+                        this.showCategoriesModal = false;
+                        this.render();
+                    });
+                }
+
+                const closeCategoriesBtn = document.getElementById('closeCategoriesBtn');
+                if (closeCategoriesBtn) {
+                    closeCategoriesBtn.addEventListener('click', () => {
+                        this.showCategoriesModal = false;
+                        this.render();
+                    });
+                }
+
+                const categoriesModal = document.getElementById('categoriesModal');
+                if (categoriesModal) {
+                    categoriesModal.addEventListener('click', (e) => {
+                        if (e.target.id === 'categoriesModal') {
+                            this.showCategoriesModal = false;
+                            this.render();
+                        }
+                    });
+                }
+
+                // Ajouter une catégorie
+                const addCategoryBtn = document.getElementById('addCategoryBtn');
+                if (addCategoryBtn) {
+                    addCategoryBtn.addEventListener('click', () => {
+                        const input = document.getElementById('newCategoryInput');
+                        const categoryName = input.value.trim();
+                        if (categoryName) {
+                            if (this.categories.includes(categoryName)) {
+                                alert('⚠️ Cette catégorie existe déjà !');
+                                return;
+                            }
+                            this.addCategory(categoryName);
+                            input.value = '';
+                        }
+                    });
+                }
+
+                // Renommer une catégorie
+                document.querySelectorAll('[data-rename-category]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const oldName = btn.dataset.renameCategory;
+                        const newName = prompt(`Renommer "${oldName}" en :`, oldName);
+                        if (newName && newName.trim() && newName !== oldName) {
+                            if (this.categories.includes(newName.trim())) {
+                                alert('⚠️ Cette catégorie existe déjà !');
+                                return;
+                            }
+                            this.renameCategory(oldName, newName.trim());
+                        }
+                    });
+                });
+
+                // Supprimer une catégorie
+                document.querySelectorAll('[data-delete-category]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const categoryName = btn.dataset.deleteCategory;
+                        if (categoryName === 'Autre') {
+                            alert('⚠️ La catégorie "Autre" ne peut pas être supprimée.');
+                            return;
+                        }
+                        const confirmed = confirm(`Êtes-vous sûr de vouloir supprimer la catégorie "${categoryName}" ?`);
+                        if (confirmed) {
+                            this.deleteCategory(categoryName);
+                        }
+                    });
+                });
+
+                // Gestion du player audio
+                document.querySelectorAll('.audio-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Empêcher la sélection du chant
+                        const audioUrl = btn.dataset.audioUrl;
+                        const chantTitle = btn.dataset.chantTitle;
+                        
+                        // Si déjà en cours de lecture, on arrête
+                        if (this.currentAudioBtn === btn && this.audioPlayer && !this.audioPlayer.paused) {
+                            this.audioPlayer.pause();
+                            btn.textContent = '▶️';
+                            this.currentAudioBtn = null;
+                            return;
+                        }
+                        
+                        // Arrêter l'audio précédent si existant
+                        if (this.audioPlayer) {
+                            this.audioPlayer.pause();
+                            if (this.currentAudioBtn) {
+                                this.currentAudioBtn.textContent = '▶️';
+                            }
+                        }
+                        
+                        // Créer un nouveau player
+                        this.audioPlayer = new Audio(audioUrl);
+                        this.currentAudioBtn = btn;
+                        btn.textContent = '⏸️';
+                        
+                        this.audioPlayer.play().catch(err => {
+                            alert('❌ Erreur de lecture audio : ' + err.message);
+                            btn.textContent = '▶️';
+                        });
+                        
+                        // Quand l'audio se termine
+                        this.audioPlayer.addEventListener('ended', () => {
+                            btn.textContent = '▶️';
+                            this.currentAudioBtn = null;
+                        });
+                        
+                        // En cas d'erreur
+                        this.audioPlayer.addEventListener('error', () => {
+                            alert('❌ Impossible de lire ce fichier audio');
+                            btn.textContent = '▶️';
+                            this.currentAudioBtn = null;
+                        });
+                    });
+                });
+
+                // Gestion des boutons PDF
+                document.querySelectorAll('.pdf-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Empêcher la sélection du chant
+                        const pdfUrl = btn.dataset.pdfUrl;
+                        const chantTitle = btn.dataset.chantTitle;
+                        
+                        // Ouvrir le PDF dans un nouvel onglet
+                        window.open(pdfUrl, '_blank');
+                    });
+                });
+            }
+        }
+
+        // Démarrer l'application
+        new ChantsApp();
+    </script>
+</body>
+</html>
