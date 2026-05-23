@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bibliothèque Mazan — Paroisse Notre-Dame du Ventoux</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Manrope:wght@300..700&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   Bibliothèque Mazan — styles scopés à .biblio-mazan
+   Aucune règle ne fuit vers le thème WordPress
+   ============================================================ */
+.biblio-mazan {
+  --bm-paper:#F5EFE0; --bm-paper-2:#FAF6EC; --bm-ink:#1B2C2A; --bm-ink-2:#2E4441;
+  --bm-muted:#6F6353; --bm-brass:#A0762A; --bm-brass-2:#C49544;
+  --bm-line:rgba(27,44,42,.14); --bm-line-2:rgba(27,44,42,.06);
+  --bm-red:#9A3B2E; --bm-green:#3E6B4F;
+  --bm-shadow:0 1px 0 rgba(27,44,42,.04),0 12px 32px -16px rgba(27,44,42,.18);
+  font-family:'Manrope',-apple-system,BlinkMacSystemFont,sans-serif;
+  color:var(--bm-ink); background:var(--bm-paper);
+  background-image:radial-gradient(ellipse at top left,rgba(160,118,42,.05),transparent 60%),radial-gradient(ellipse at bottom right,rgba(27,44,42,.04),transparent 60%);
+  padding:clamp(24px,4vw,56px) clamp(16px,4vw,48px); max-width:1280px; margin:0 auto;
+  border-radius:4px; position:relative; overflow:hidden;
+}
+.biblio-mazan::before{content:"";position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,rgba(27,44,42,.012) 0 1px,transparent 1px 4px);pointer-events:none;opacity:.6;}
+.biblio-mazan *{box-sizing:border-box;}
+
+/* En-tête */
+.biblio-mazan .bmz-header{position:relative;text-align:center;padding-bottom:28px;margin-bottom:32px;border-bottom:1px solid var(--bm-line);}
+.biblio-mazan .bmz-eyebrow{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--bm-brass);font-weight:600;margin-bottom:14px;}
+.biblio-mazan .bmz-eyebrow::before,.biblio-mazan .bmz-eyebrow::after{content:"—";margin:0 12px;color:var(--bm-line);}
+.biblio-mazan .bmz-title{font-family:'Fraunces',Georgia,serif;font-variation-settings:'opsz' 144,'SOFT' 50,'WONK' 1;font-weight:400;font-style:italic;font-size:clamp(48px,8vw,96px);line-height:.95;letter-spacing:-.02em;margin:0;}
+.biblio-mazan .bmz-title em{font-style:normal;font-weight:500;display:block;}
+.biblio-mazan .bmz-subtitle{font-family:'Fraunces',Georgia,serif;font-variation-settings:'opsz' 14;font-size:15px;font-style:italic;color:var(--bm-muted);margin-top:16px;}
+.biblio-mazan .bmz-lock{position:absolute;top:0;right:0;background:none;border:1px solid var(--bm-line);border-radius:2px;color:var(--bm-muted);width:38px;height:38px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .2s;}
+.biblio-mazan .bmz-lock:hover{border-color:var(--bm-brass);color:var(--bm-brass);}
+.biblio-mazan .bmz-lock svg{width:17px;height:17px;}
+.biblio-mazan .bmz-lock.bmz-on{background:var(--bm-green);border-color:var(--bm-green);color:#fff;}
+
+/* Barre admin */
+.biblio-mazan .bmz-adminbar{display:none;align-items:center;gap:14px;flex-wrap:wrap;background:var(--bm-ink);color:var(--bm-paper);padding:12px 18px;border-radius:2px;margin-bottom:18px;font-size:13px;}
+.biblio-mazan.bmz-isadmin .bmz-adminbar{display:flex;}
+.biblio-mazan .bmz-adminbar .bmz-who{flex:1;font-style:italic;font-family:'Fraunces',serif;font-variation-settings:'opsz' 14;}
+.biblio-mazan .bmz-adminbar .bmz-who strong{font-style:normal;color:var(--bm-brass-2);}
+
+/* Boutons génériques */
+.biblio-mazan .bmz-btn{font-family:inherit;font-size:13px;font-weight:500;padding:10px 18px;border-radius:2px;border:1px solid transparent;cursor:pointer;transition:all .15s;letter-spacing:.02em;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;}
+.biblio-mazan .bmz-btn svg{width:15px;height:15px;}
+.biblio-mazan .bmz-btn-primary{background:var(--bm-brass);color:#fff;}
+.biblio-mazan .bmz-btn-primary:hover{background:var(--bm-brass-2);}
+.biblio-mazan .bmz-btn-ghost{background:transparent;border-color:rgba(245,239,224,.3);color:var(--bm-paper);}
+.biblio-mazan .bmz-btn-ghost:hover{border-color:var(--bm-paper);}
+.biblio-mazan .bmz-btn-line{background:var(--bm-paper-2);border-color:var(--bm-line);color:var(--bm-ink);}
+.biblio-mazan .bmz-btn-line:hover{border-color:var(--bm-brass);color:var(--bm-brass);}
+
+/* Toolbar */
+.biblio-mazan .bmz-toolbar{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;margin-bottom:16px;}
+@media(max-width:720px){.biblio-mazan .bmz-toolbar{grid-template-columns:1fr;}}
+.biblio-mazan .bmz-search{position:relative;}
+.biblio-mazan .bmz-search input{width:100%;padding:14px 18px 14px 46px;font-family:inherit;font-size:15px;background:var(--bm-paper-2);color:var(--bm-ink);border:1px solid var(--bm-line);border-radius:2px;outline:none;transition:border-color .2s,box-shadow .2s;}
+.biblio-mazan .bmz-search input::placeholder{color:var(--bm-muted);font-style:italic;}
+.biblio-mazan .bmz-search input:focus{border-color:var(--bm-brass);box-shadow:0 0 0 3px rgba(160,118,42,.12);}
+.biblio-mazan .bmz-search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--bm-muted);pointer-events:none;}
+.biblio-mazan select.bmz-select{appearance:none;-webkit-appearance:none;padding:14px 44px 14px 18px;font-family:inherit;font-size:14px;color:var(--bm-ink);background:var(--bm-paper-2);border:1px solid var(--bm-line);border-radius:2px;cursor:pointer;outline:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236F6353' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 16px center;transition:border-color .2s,box-shadow .2s;min-width:200px;}
+.biblio-mazan select.bmz-select:focus,.biblio-mazan select.bmz-select:hover{border-color:var(--bm-brass);box-shadow:0 0 0 3px rgba(160,118,42,.08);}
+
+/* Compteur */
+.biblio-mazan .bmz-count{display:flex;align-items:baseline;justify-content:space-between;font-family:'Fraunces',Georgia,serif;font-variation-settings:'opsz' 14;font-style:italic;font-size:14px;color:var(--bm-muted);margin:24px 0 10px;padding-bottom:8px;border-bottom:1px solid var(--bm-line-2);}
+.biblio-mazan .bmz-count strong{font-family:'Fraunces',Georgia,serif;font-style:normal;font-weight:500;color:var(--bm-ink);font-size:16px;}
+.biblio-mazan .bmz-reset{background:none;border:none;color:var(--bm-brass);font-family:inherit;font-size:12px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:4px 0;border-bottom:1px solid transparent;transition:border-color .2s;}
+.biblio-mazan .bmz-reset:hover{border-bottom-color:var(--bm-brass);}
+
+/* Tableau */
+.biblio-mazan .bmz-table-wrap{background:var(--bm-paper-2);border:1px solid var(--bm-line);border-radius:2px;overflow:hidden;box-shadow:var(--bm-shadow);}
+.biblio-mazan table.bmz-table{width:100%;border-collapse:collapse;font-size:14px;}
+.biblio-mazan .bmz-table thead th{background:var(--bm-ink);color:var(--bm-paper);font-weight:500;font-size:11px;letter-spacing:.16em;text-transform:uppercase;text-align:left;padding:16px 18px;cursor:pointer;user-select:none;position:sticky;top:0;z-index:2;white-space:nowrap;transition:background .15s;}
+.biblio-mazan .bmz-table thead th:hover{background:var(--bm-ink-2);}
+.biblio-mazan .bmz-table thead th.bmz-sorted{background:var(--bm-ink-2);color:var(--bm-brass-2);}
+.biblio-mazan .bmz-table thead th.bmz-actions-h{cursor:default;text-align:center;width:90px;}
+.biblio-mazan .bmz-table thead th.bmz-actions-h:hover{background:var(--bm-ink);}
+.biblio-mazan .bmz-arrow{display:inline-block;margin-left:6px;opacity:0;font-size:10px;transition:opacity .2s,transform .2s;}
+.biblio-mazan .bmz-table thead th.bmz-sorted .bmz-arrow{opacity:1;}
+.biblio-mazan .bmz-table thead th.bmz-sorted.bmz-desc .bmz-arrow{transform:rotate(180deg);}
+.biblio-mazan .bmz-table tbody tr{border-top:1px solid var(--bm-line-2);transition:background .12s;}
+.biblio-mazan .bmz-table tbody tr:hover{background:rgba(160,118,42,.04);}
+.biblio-mazan .bmz-table tbody tr:nth-child(even){background:rgba(27,44,42,.015);}
+.biblio-mazan .bmz-table tbody tr:nth-child(even):hover{background:rgba(160,118,42,.04);}
+.biblio-mazan .bmz-table td{padding:12px 18px;vertical-align:top;line-height:1.45;}
+.biblio-mazan .bmz-num{font-family:'Fraunces',Georgia,serif;font-variation-settings:'opsz' 14;font-style:italic;color:var(--bm-brass);font-size:13px;white-space:nowrap;width:80px;}
+.biblio-mazan .bmz-titre{font-family:'Fraunces',Georgia,serif;font-variation-settings:'opsz' 24;font-weight:500;color:var(--bm-ink);font-size:15.5px;line-height:1.3;}
+.biblio-mazan .bmz-auteur{color:var(--bm-ink-2);font-size:13.5px;}
+.biblio-mazan .bmz-auteur:empty::before{content:"—";color:var(--bm-line);}
+.biblio-mazan .bmz-cat{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--bm-muted);white-space:nowrap;}
+.biblio-mazan .bmz-cat span{display:inline-block;padding:4px 10px;background:rgba(160,118,42,.08);color:var(--bm-brass);border-radius:2px;font-weight:500;}
+.biblio-mazan .bmz-row-actions{display:none;text-align:center;white-space:nowrap;}
+.biblio-mazan.bmz-isadmin .bmz-row-actions{display:table-cell;}
+.biblio-mazan.bmz-isadmin .bmz-actions-h{display:table-cell;}
+.biblio-mazan .bmz-actions-h{display:none;}
+.biblio-mazan .bmz-icon-btn{background:none;border:none;cursor:pointer;padding:6px;border-radius:2px;color:var(--bm-muted);transition:all .15s;}
+.biblio-mazan .bmz-icon-btn svg{width:16px;height:16px;display:block;}
+.biblio-mazan .bmz-icon-btn.bmz-edit:hover{color:var(--bm-brass);background:rgba(160,118,42,.1);}
+.biblio-mazan .bmz-icon-btn.bmz-del:hover{color:var(--bm-red);background:rgba(154,59,46,.1);}
+
+.biblio-mazan mark{background:rgba(196,149,68,.32);color:inherit;padding:0 2px;border-radius:2px;}
+
+/* États */
+.biblio-mazan .bmz-state{padding:80px 24px;text-align:center;font-family:'Fraunces',Georgia,serif;font-style:italic;color:var(--bm-muted);line-height:1.6;}
+.biblio-mazan .bmz-state::before{content:"✦";display:block;font-size:28px;color:var(--bm-brass);margin-bottom:16px;font-style:normal;}
+.biblio-mazan .bmz-state.bmz-err::before{content:"⚠";color:var(--bm-red);}
+.biblio-mazan .bmz-state code{font-family:ui-monospace,monospace;font-style:normal;font-size:12px;background:rgba(27,44,42,.06);padding:2px 6px;border-radius:2px;}
+.biblio-mazan .bmz-spinner{width:32px;height:32px;border:3px solid var(--bm-line);border-top-color:var(--bm-brass);border-radius:50%;animation:bmz-spin .8s linear infinite;margin:0 auto 18px;}
+@keyframes bmz-spin{to{transform:rotate(360deg);}}
+
+/* Pagination */
+.biblio-mazan .bmz-pager{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:28px;flex-wrap:wrap;}
+.biblio-mazan .bmz-pager button{background:var(--bm-paper-2);border:1px solid var(--bm-line);color:var(--bm-ink);font-family:'Fraunces',Georgia,serif;font-variation-settings:'opsz' 14;font-size:14px;padding:8px 14px;cursor:pointer;border-radius:2px;min-width:40px;transition:all .15s;}
+.biblio-mazan .bmz-pager button:hover:not(:disabled):not(.bmz-active){border-color:var(--bm-brass);color:var(--bm-brass);}
+.biblio-mazan .bmz-pager button.bmz-active{background:var(--bm-ink);color:var(--bm-paper);border-color:var(--bm-ink);font-weight:500;}
+.biblio-mazan .bmz-pager button:disabled{opacity:.4;cursor:not-allowed;}
+.biblio-mazan .bmz-pager span.bmz-ellipsis{color:var(--bm-muted);padding:0 4px;}
+
+/* Pied */
+.biblio-mazan .bmz-footer{margin-top:36px;padding-top:20px;border-top:1px solid var(--bm-line);text-align:center;font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:13px;color:var(--bm-muted);}
+.biblio-mazan .bmz-footer .bmz-ornament{display:block;color:var(--bm-brass);font-size:14px;margin-bottom:10px;letter-spacing:.5em;font-style:normal;}
+
+/* Overlay + modales */
+.biblio-mazan .bmz-overlay{position:fixed;inset:0;background:rgba(27,44,42,.55);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:99999;padding:20px;}
+.biblio-mazan .bmz-overlay.bmz-show{display:flex;}
+.biblio-mazan .bmz-modal{background:var(--bm-paper);border-radius:4px;max-width:520px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 30px 80px -20px rgba(0,0,0,.45);border:1px solid var(--bm-line);}
+.biblio-mazan .bmz-modal-head{padding:24px 28px 18px;border-bottom:1px solid var(--bm-line);}
+.biblio-mazan .bmz-modal-head h3{font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:400;font-size:26px;margin:0;color:var(--bm-ink);}
+.biblio-mazan .bmz-modal-head p{font-size:13px;color:var(--bm-muted);margin:6px 0 0;}
+.biblio-mazan .bmz-modal-body{padding:24px 28px;}
+.biblio-mazan .bmz-field{margin-bottom:18px;}
+.biblio-mazan .bmz-field label{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--bm-muted);font-weight:600;margin-bottom:7px;}
+.biblio-mazan .bmz-field input{width:100%;padding:12px 14px;font-family:inherit;font-size:15px;background:var(--bm-paper-2);color:var(--bm-ink);border:1px solid var(--bm-line);border-radius:2px;outline:none;transition:border-color .2s,box-shadow .2s;}
+.biblio-mazan .bmz-field input:focus{border-color:var(--bm-brass);box-shadow:0 0 0 3px rgba(160,118,42,.12);}
+.biblio-mazan .bmz-modal-foot{padding:18px 28px 24px;display:flex;gap:12px;justify-content:flex-end;border-top:1px solid var(--bm-line-2);}
+.biblio-mazan .bmz-formerr{color:var(--bm-red);font-size:13px;margin-bottom:14px;display:none;}
+.biblio-mazan .bmz-formerr.bmz-show{display:block;}
+
+/* Toast */
+.biblio-mazan .bmz-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bm-ink);color:var(--bm-paper);padding:14px 24px;border-radius:3px;font-size:14px;box-shadow:0 12px 30px -8px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:all .3s;z-index:100000;}
+.biblio-mazan .bmz-toast.bmz-show{opacity:1;transform:translateX(-50%) translateY(0);}
+.biblio-mazan .bmz-toast.bmz-toast-ok{border-left:3px solid var(--bm-green);}
+.biblio-mazan .bmz-toast.bmz-toast-err{border-left:3px solid var(--bm-red);}
+
+/* Mobile : cartes */
+@media(max-width:640px){
+  .biblio-mazan .bmz-table thead{display:none;}
+  .biblio-mazan .bmz-table,.biblio-mazan .bmz-table tbody,.biblio-mazan .bmz-table tr,.biblio-mazan .bmz-table td{display:block;width:100%;}
+  .biblio-mazan .bmz-table tr{padding:16px;border-top:1px solid var(--bm-line-2);position:relative;}
+  .biblio-mazan .bmz-table td{padding:2px 0;width:100%;}
+  .biblio-mazan .bmz-num{font-size:11px;width:auto;}
+  .biblio-mazan .bmz-titre{font-size:17px;margin:4px 0;padding-right:70px;}
+  .biblio-mazan .bmz-auteur{font-size:13px;}
+  .biblio-mazan .bmz-cat{margin-top:6px;}
+  .biblio-mazan.bmz-isadmin .bmz-row-actions{display:block;position:absolute;top:14px;right:12px;}
+}
+</style>
+</head>
+<body style="margin:0;background:#EAE2D0;">
+
+<!-- ============================================================
+     BLOC À COPIER DANS WORDPRESS (du <div> au </script> final)
+     N'oubliez pas d'inclure aussi le <style> et les <link> de polices
+     ============================================================ -->
+<div class="biblio-mazan" id="bmz-root">
+
+  <header class="bmz-header">
+    <button class="bmz-lock" id="bmz-lock" type="button" title="Espace administrateur" aria-label="Espace administrateur">
+      <svg id="bmz-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </button>
+    <div class="bmz-eyebrow">Paroisse Notre-Dame du Ventoux</div>
+    <h1 class="bmz-title">Bibliothèque <em>de Mazan</em></h1>
+    <p class="bmz-subtitle">Le catalogue complet des ouvrages, revues et enregistrements à votre disposition</p>
+  </header>
+
+  <!-- Barre administrateur (visible une fois connecté) -->
+  <div class="bmz-adminbar" id="bmz-adminbar">
+    <span class="bmz-who">Mode administration — <strong id="bmz-admin-email">connecté</strong></span>
+    <button class="bmz-btn bmz-btn-primary" id="bmz-add" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Ajouter un livre
+    </button>
+    <button class="bmz-btn bmz-btn-ghost" id="bmz-logout" type="button">Se déconnecter</button>
+  </div>
+
+  <div class="bmz-toolbar">
+    <div class="bmz-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="bmz-search-input" placeholder="Rechercher un titre, un auteur…" autocomplete="off">
+    </div>
+    <select class="bmz-select" id="bmz-cat-filter" aria-label="Filtrer par catégorie">
+      <option value="">Toutes les catégories</option>
+    </select>
+    <select class="bmz-select" id="bmz-sort" aria-label="Trier par">
+      <option value="t-asc">Trier par titre (A → Z)</option>
+      <option value="t-desc">Trier par titre (Z → A)</option>
+      <option value="a-asc">Trier par auteur (A → Z)</option>
+      <option value="a-desc">Trier par auteur (Z → A)</option>
+      <option value="c-asc">Trier par catégorie</option>
+      <option value="n-asc">Trier par numéro</option>
+    </select>
+  </div>
+
+  <div class="bmz-count">
+    <span><strong id="bmz-count-num">0</strong> ouvrage(s) affiché(s)</span>
+    <button class="bmz-reset" id="bmz-reset" type="button">Réinitialiser</button>
+  </div>
+
+  <div class="bmz-table-wrap">
+    <table class="bmz-table" id="bmz-table">
+      <thead>
+        <tr>
+          <th data-sort="n">N°<span class="bmz-arrow">▲</span></th>
+          <th data-sort="t" class="bmz-sorted">Titre<span class="bmz-arrow">▲</span></th>
+          <th data-sort="a">Auteur<span class="bmz-arrow">▲</span></th>
+          <th data-sort="c">Catégorie<span class="bmz-arrow">▲</span></th>
+          <th class="bmz-actions-h">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="bmz-tbody"></tbody>
+    </table>
+    <div class="bmz-state" id="bmz-state"><div class="bmz-spinner"></div>Connexion à la base de données…</div>
+  </div>
+
+  <div class="bmz-pager" id="bmz-pager"></div>
+
+  <div class="bmz-footer">
+    <span class="bmz-ornament">✦ ✦ ✦</span>
+    Pour emprunter un ouvrage, adressez-vous au presbytère de Mazan.
+  </div>
+
+  <!-- Modale connexion -->
+  <div class="bmz-overlay" id="bmz-login-overlay">
+    <div class="bmz-modal">
+      <div class="bmz-modal-head"><h3>Espace administrateur</h3><p>Réservé à l'équipe de la bibliothèque.</p></div>
+      <div class="bmz-modal-body">
+        <div class="bmz-formerr" id="bmz-login-err"></div>
+        <div class="bmz-field"><label for="bmz-login-email">Adresse e-mail</label><input type="email" id="bmz-login-email" autocomplete="username"></div>
+        <div class="bmz-field"><label for="bmz-login-pass">Mot de passe</label><input type="password" id="bmz-login-pass" autocomplete="current-password"></div>
+      </div>
+      <div class="bmz-modal-foot">
+        <button class="bmz-btn bmz-btn-line" id="bmz-login-cancel" type="button">Annuler</button>
+        <button class="bmz-btn bmz-btn-primary" id="bmz-login-submit" type="button">Se connecter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale ajout / édition -->
+  <div class="bmz-overlay" id="bmz-form-overlay">
+    <div class="bmz-modal">
+      <div class="bmz-modal-head"><h3 id="bmz-form-title">Ajouter un livre</h3><p>Renseignez les informations de l'ouvrage.</p></div>
+      <div class="bmz-modal-body">
+        <div class="bmz-formerr" id="bmz-form-err"></div>
+        <div class="bmz-field"><label for="bmz-f-titre">Titre *</label><input type="text" id="bmz-f-titre"></div>
+        <div class="bmz-field"><label for="bmz-f-auteur">Auteur</label><input type="text" id="bmz-f-auteur"></div>
+        <div class="bmz-field"><label for="bmz-f-cat">Catégorie</label><input type="text" id="bmz-f-cat" list="bmz-cat-list"><datalist id="bmz-cat-list"></datalist></div>
+        <div class="bmz-field"><label for="bmz-f-num">Numéro / cote</label><input type="text" id="bmz-f-num"></div>
+      </div>
+      <div class="bmz-modal-foot">
+        <button class="bmz-btn bmz-btn-line" id="bmz-form-cancel" type="button">Annuler</button>
+        <button class="bmz-btn bmz-btn-primary" id="bmz-form-submit" type="button">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale suppression -->
+  <div class="bmz-overlay" id="bmz-del-overlay">
+    <div class="bmz-modal">
+      <div class="bmz-modal-head"><h3>Supprimer cet ouvrage&nbsp;?</h3></div>
+      <div class="bmz-modal-body"><p id="bmz-del-text" style="margin:0;color:var(--bm-ink-2);line-height:1.5;"></p></div>
+      <div class="bmz-modal-foot">
+        <button class="bmz-btn bmz-btn-line" id="bmz-del-cancel" type="button">Annuler</button>
+        <button class="bmz-btn bmz-btn-primary" id="bmz-del-confirm" type="button" style="background:var(--bm-red);">Supprimer définitivement</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bmz-toast" id="bmz-toast"></div>
+</div>
+
+<script type="module">
+/* =================================================================
+   ÉTAPE 1 — COLLEZ ICI VOTRE CONFIGURATION FIREBASE
+   (Console Firebase → Paramètres du projet → Vos applications → Web)
+   ================================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyBOCCJ11o0oUHnDMmInXNKpZAEYzkOkzX8",
+  authDomain: "bibliotheque-mazan.firebaseapp.com",
+  projectId: "bibliotheque-mazan",
+  storageBucket: "bibliotheque-mazan.firebasestorage.app",
+  messagingSenderId: "135983695308",
+  appId: "1:135983695308:web:b56603ae420bb6423f8969"
+};
+/* ================================================================= */
+
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
+import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
+
+(function () {
+  'use strict';
+  const root = document.getElementById('bmz-root');
+  const $ = id => document.getElementById(id);
+
+  // -- Vérification de la configuration --
+  if (firebaseConfig.apiKey === 'VOTRE_API_KEY') {
+    showState('Configuration Firebase manquante. Ouvrez le code de cette page et remplacez le bloc <code>firebaseConfig</code> par les clés de votre projet Firebase. Voir le guide d\'installation.', true);
+    return;
+  }
+
+  let app, db, auth, docRef;
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+    docRef = doc(db, 'catalogue', 'principal');
+  } catch (e) {
+    showState('Erreur d\'initialisation Firebase : ' + e.message, true);
+    return;
+  }
+
+  // -- État applicatif --
+  const state = { all: [], query: '', category: '', sortKey: 't', sortDir: 'asc', page: 1, perPage: 50, admin: false, editId: null, delId: null, ready: false };
+
+  // -- Éléments --
+  const els = {
+    search: $('bmz-search-input'), cat: $('bmz-cat-filter'), sort: $('bmz-sort'),
+    tbody: $('bmz-tbody'), state: $('bmz-state'), count: $('bmz-count-num'),
+    pager: $('bmz-pager'), reset: $('bmz-reset'), headers: root.querySelectorAll('.bmz-table thead th[data-sort]'),
+    lock: $('bmz-lock'), lockIcon: $('bmz-lock-icon'), adminEmail: $('bmz-admin-email'),
+    addBtn: $('bmz-add'), logoutBtn: $('bmz-logout'),
+    loginOv: $('bmz-login-overlay'), loginEmail: $('bmz-login-email'), loginPass: $('bmz-login-pass'),
+    loginErr: $('bmz-login-err'), loginCancel: $('bmz-login-cancel'), loginSubmit: $('bmz-login-submit'),
+    formOv: $('bmz-form-overlay'), formTitle: $('bmz-form-title'), fTitre: $('bmz-f-titre'),
+    fAuteur: $('bmz-f-auteur'), fCat: $('bmz-f-cat'), fNum: $('bmz-f-num'), catList: $('bmz-cat-list'),
+    formErr: $('bmz-form-err'), formCancel: $('bmz-form-cancel'), formSubmit: $('bmz-form-submit'),
+    delOv: $('bmz-del-overlay'), delText: $('bmz-del-text'), delCancel: $('bmz-del-cancel'), delConfirm: $('bmz-del-confirm'),
+    toast: $('bmz-toast')
+  };
+
+  // -- Utilitaires --
+  function norm(s){return (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+  function esc(s){return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function uid(){return (crypto && crypto.randomUUID) ? crypto.randomUUID() : 'b'+Date.now()+Math.random().toString(36).slice(2,8);}
+  function showState(html, isErr){els.state.style.display='block';els.state.className='bmz-state'+(isErr?' bmz-err':'');els.state.innerHTML=html;}
+  function hideState(){els.state.style.display='none';}
+  function toast(msg, ok){els.toast.textContent=msg;els.toast.className='bmz-toast bmz-show '+(ok?'bmz-toast-ok':'bmz-toast-err');setTimeout(()=>els.toast.classList.remove('bmz-show'),2800);}
+  function compareNum(a,b){if(!a&&!b)return 0;if(!a)return 1;if(!b)return -1;const ma=a.match(/^([A-Za-z]*)(\d+)$/),mb=b.match(/^([A-Za-z]*)(\d+)$/);if(ma&&mb){if(ma[1]!==mb[1])return ma[1].localeCompare(mb[1]);return parseInt(ma[2],10)-parseInt(mb[2],10);}return a.localeCompare(b);}
+  function highlight(text,q){if(!q)return esc(text);const nT=norm(text),nQ=norm(q),i=nT.indexOf(nQ);if(i<0)return esc(text);return esc(text.slice(0,i))+'<mark>'+esc(text.slice(i,i+q.length))+'</mark>'+esc(text.slice(i+q.length));}
+
+  // -- Catégories (filtre + datalist) --
+  function refreshCategories(){
+    const cats=[...new Set(state.all.map(b=>b.c).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
+    const cur=els.cat.value;
+    els.cat.innerHTML='<option value="">Toutes les catégories</option>';
+    els.catList.innerHTML='';
+    cats.forEach(c=>{
+      const n=state.all.filter(b=>b.c===c).length;
+      const o=document.createElement('option');o.value=c;o.textContent=c+' ('+n+')';els.cat.appendChild(o);
+      const d=document.createElement('option');d.value=c;els.catList.appendChild(d);
+    });
+    if([...els.cat.options].some(o=>o.value===cur))els.cat.value=cur;
+  }
+
+  // -- Filtre + tri --
+  function compute(){
+    const q=norm(state.query);let list=state.all;
+    if(state.category)list=list.filter(b=>b.c===state.category);
+    if(q)list=list.filter(b=>norm(b.t).includes(q)||norm(b.a).includes(q)||norm(b.n).includes(q));
+    const dir=state.sortDir==='asc'?1:-1,key=state.sortKey;
+    return list.slice().sort((a,b)=>{let r;if(key==='n')r=compareNum(a.n,b.n);else r=(a[key]||'').localeCompare(b[key]||'','fr',{sensitivity:'base'});return r*dir;});
+  }
+
+  // -- Rendu --
+  function render(){
+    if(!state.ready)return;
+    const list=compute();
+    els.count.textContent=list.length.toLocaleString('fr-FR');
+    if(state.all.length===0){
+      els.tbody.innerHTML='';
+      showState(state.admin?'La base est vide. Cliquez sur « Ajouter un livre » pour commencer, ou importez le catalogue initial avec l\'outil d\'import.':'Le catalogue est en cours de constitution.',false);
+      els.pager.innerHTML='';return;
+    }
+    if(list.length===0){els.tbody.innerHTML='';showState('Aucun ouvrage ne correspond à votre recherche.',false);els.pager.innerHTML='';return;}
+    hideState();
+    const totalPages=Math.max(1,Math.ceil(list.length/state.perPage));
+    if(state.page>totalPages)state.page=totalPages;
+    const start=(state.page-1)*state.perPage,slice=list.slice(start,start+state.perPage),q=state.query;
+    let html='';
+    for(const b of slice){
+      html+='<tr>'
+        +'<td class="bmz-num">'+esc(b.n)+'</td>'
+        +'<td class="bmz-titre">'+highlight(b.t,q)+'</td>'
+        +'<td class="bmz-auteur">'+highlight(b.a,q)+'</td>'
+        +'<td class="bmz-cat">'+(b.c?'<span>'+esc(b.c)+'</span>':'')+'</td>'
+        +'<td class="bmz-row-actions">'
+          +'<button class="bmz-icon-btn bmz-edit" data-id="'+b.id+'" title="Modifier"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>'
+          +'<button class="bmz-icon-btn bmz-del" data-id="'+b.id+'" title="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>'
+        +'</td>'
+        +'</tr>';
+    }
+    els.tbody.innerHTML=html;
+    els.headers.forEach(h=>{h.classList.toggle('bmz-sorted',h.dataset.sort===state.sortKey);h.classList.toggle('bmz-desc',h.dataset.sort===state.sortKey&&state.sortDir==='desc');});
+    renderPager(totalPages);
+  }
+  function renderPager(tp){
+    if(tp<=1){els.pager.innerHTML='';return;}
+    let h='';const p=state.page;
+    h+='<button type="button" data-page="'+(p-1)+'"'+(p===1?' disabled':'')+'>‹ Préc.</button>';
+    const pages=[1];if(p-2>2)pages.push('…');
+    for(let i=Math.max(2,p-1);i<=Math.min(tp-1,p+1);i++)pages.push(i);
+    if(p+2<tp-1)pages.push('…');if(tp>1)pages.push(tp);
+    pages.forEach(x=>{if(x==='…')h+='<span class="bmz-ellipsis">…</span>';else h+='<button type="button" data-page="'+x+'"'+(x===p?' class="bmz-active"':'')+'>'+x+'</button>';});
+    h+='<button type="button" data-page="'+(p+1)+'"'+(p===tp?' disabled':'')+'>Suiv. ›</button>';
+    els.pager.innerHTML=h;
+  }
+
+  // -- Écriture Firestore (réécrit tout le catalogue) --
+  async function save(){
+    return setDoc(docRef,{ livres: state.all, maj: Date.now() });
+  }
+
+  // -- Écoute temps réel --
+  showState('<div class="bmz-spinner"></div>Connexion à la base de données…',false);
+  onSnapshot(docRef, snap => {
+    state.ready=true;
+    state.all = (snap.exists() && Array.isArray(snap.data().livres)) ? snap.data().livres : [];
+    // garantir un id pour chaque entrée
+    let changed=false;
+    state.all.forEach(b=>{if(!b.id){b.id=uid();changed=true;}});
+    refreshCategories();
+    render();
+  }, err => {
+    showState('Impossible de lire la base : '+esc(err.message)+'. Vérifiez vos règles de sécurité Firestore.',true);
+  });
+
+  // -- Authentification --
+  onAuthStateChanged(auth, user => {
+    state.admin=!!user;
+    root.classList.toggle('bmz-isadmin', state.admin);
+    els.lock.classList.toggle('bmz-on', state.admin);
+    els.lockIcon.innerHTML = state.admin
+      ? '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>'
+      : '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
+    if(user)els.adminEmail.textContent=user.email||'connecté';
+    render();
+  });
+
+  // -- Modales : ouverture/fermeture --
+  function openOv(ov){ov.classList.add('bmz-show');}
+  function closeOv(ov){ov.classList.remove('bmz-show');}
+
+  els.lock.addEventListener('click',()=>{ if(state.admin){ /* déjà connecté : rien */ } else { els.loginErr.classList.remove('bmz-show'); els.loginEmail.value=''; els.loginPass.value=''; openOv(els.loginOv); els.loginEmail.focus(); } });
+  els.loginCancel.addEventListener('click',()=>closeOv(els.loginOv));
+  els.loginSubmit.addEventListener('click', doLogin);
+  els.loginPass.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  async function doLogin(){
+    els.loginErr.classList.remove('bmz-show');
+    const email=els.loginEmail.value.trim(),pass=els.loginPass.value;
+    if(!email||!pass){els.loginErr.textContent='Veuillez saisir votre e-mail et votre mot de passe.';els.loginErr.classList.add('bmz-show');return;}
+    els.loginSubmit.disabled=true;els.loginSubmit.textContent='Connexion…';
+    try{ await signInWithEmailAndPassword(auth,email,pass); closeOv(els.loginOv); toast('Bienvenue, vous êtes connecté.',true); }
+    catch(e){ els.loginErr.textContent='Connexion impossible : e-mail ou mot de passe incorrect.'; els.loginErr.classList.add('bmz-show'); }
+    finally{ els.loginSubmit.disabled=false; els.loginSubmit.textContent='Se connecter'; }
+  }
+  els.logoutBtn.addEventListener('click', async ()=>{ await signOut(auth); toast('Vous êtes déconnecté.',true); });
+
+  // -- Formulaire ajout/édition --
+  function openForm(book){
+    state.editId = book ? book.id : null;
+    els.formTitle.textContent = book ? 'Modifier le livre' : 'Ajouter un livre';
+    els.fTitre.value  = book ? book.t : '';
+    els.fAuteur.value = book ? book.a : '';
+    els.fCat.value    = book ? book.c : '';
+    els.fNum.value    = book ? book.n : '';
+    els.formErr.classList.remove('bmz-show');
+    openOv(els.formOv); els.fTitre.focus();
+  }
+  els.addBtn.addEventListener('click',()=>openForm(null));
+  els.formCancel.addEventListener('click',()=>closeOv(els.formOv));
+  els.formSubmit.addEventListener('click', doSave);
+  async function doSave(){
+    const titre=els.fTitre.value.trim();
+    if(!titre){els.formErr.textContent='Le titre est obligatoire.';els.formErr.classList.add('bmz-show');return;}
+    const data={ t:titre, a:els.fAuteur.value.trim(), c:els.fCat.value.trim(), n:els.fNum.value.trim() };
+    els.formSubmit.disabled=true;els.formSubmit.textContent='Enregistrement…';
+    try{
+      if(state.editId){
+        const b=state.all.find(x=>x.id===state.editId);
+        if(b)Object.assign(b,data);
+      }else{
+        state.all.push({ id:uid(), ...data });
+      }
+      await save();
+      closeOv(els.formOv);
+      toast(state.editId?'Livre modifié.':'Livre ajouté.',true);
+    }catch(e){ els.formErr.textContent='Échec de l\'enregistrement : '+e.message; els.formErr.classList.add('bmz-show'); }
+    finally{ els.formSubmit.disabled=false; els.formSubmit.textContent='Enregistrer'; }
+  }
+
+  // -- Suppression --
+  function openDel(book){ state.delId=book.id; els.delText.innerHTML='« <strong>'+esc(book.t)+'</strong> »'+(book.a?' — '+esc(book.a):'')+' sera retiré du catalogue. Cette action est irréversible.'; openOv(els.delOv); }
+  els.delCancel.addEventListener('click',()=>closeOv(els.delOv));
+  els.delConfirm.addEventListener('click', async ()=>{
+    els.delConfirm.disabled=true;els.delConfirm.textContent='Suppression…';
+    try{ state.all=state.all.filter(b=>b.id!==state.delId); await save(); closeOv(els.delOv); toast('Livre supprimé.',true); }
+    catch(e){ toast('Échec de la suppression : '+e.message,false); }
+    finally{ els.delConfirm.disabled=false; els.delConfirm.textContent='Supprimer définitivement'; }
+  });
+
+  // -- Délégation actions tableau --
+  els.tbody.addEventListener('click',e=>{
+    const ed=e.target.closest('.bmz-edit'), de=e.target.closest('.bmz-del');
+    if(ed){const b=state.all.find(x=>x.id===ed.dataset.id);if(b)openForm(b);}
+    else if(de){const b=state.all.find(x=>x.id===de.dataset.id);if(b)openDel(b);}
+  });
+
+  // -- Fermer les modales en cliquant sur le fond --
+  [els.loginOv,els.formOv,els.delOv].forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov)closeOv(ov);}));
+
+  // -- Recherche / filtre / tri --
+  let st;
+  els.search.addEventListener('input',e=>{clearTimeout(st);st=setTimeout(()=>{state.query=e.target.value.trim();state.page=1;render();},120);});
+  els.cat.addEventListener('change',e=>{state.category=e.target.value;state.page=1;render();});
+  els.sort.addEventListener('change',e=>{const[k,d]=e.target.value.split('-');state.sortKey=k;state.sortDir=d;state.page=1;render();});
+  els.headers.forEach(h=>h.addEventListener('click',()=>{const k=h.dataset.sort;if(state.sortKey===k)state.sortDir=state.sortDir==='asc'?'desc':'asc';else{state.sortKey=k;state.sortDir='asc';}els.sort.value=state.sortKey+'-'+state.sortDir;state.page=1;render();}));
+  els.pager.addEventListener('click',e=>{const b=e.target.closest('button[data-page]');if(!b||b.disabled)return;state.page=parseInt(b.dataset.page,10);render();root.querySelector('.bmz-table-wrap').scrollIntoView({behavior:'smooth',block:'start'});});
+  els.reset.addEventListener('click',()=>{state.query='';state.category='';state.sortKey='t';state.sortDir='asc';state.page=1;els.search.value='';els.cat.value='';els.sort.value='t-asc';render();});
+})();
+</script>
+<!-- ====== FIN DU BLOC À COPIER ====== -->
+
+</body>
+</html>
