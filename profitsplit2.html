@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>ProfitSplit — Simulateur de Hedging 1 Compte</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #0a1120;
+    --panel: #101a2c;
+    --panel-2: #0d1626;
+    --border: #1e2c44;
+    --border-soft: #182338;
+    --text: #dfe6f2;
+    --muted: #7d8bA3;
+    --muted-2: #5b6b85;
+    --lime: #8fe35a;
+    --lime-dim: #3f5a2e;
+    --red: #f2495c;
+    --red-dim: #4a2230;
+    --amber: #f2b705;
+    --amber-dim: #4a3a12;
+    --blue: #4fb2f2;
+    --font-head: 'Space Grotesk', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: radial-gradient(ellipse at top left, #0e1830 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: var(--font-mono);
+    padding: 22px;
+    min-height:100vh;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:18px;}
+  .brand{display:flex;gap:12px;align-items:flex-start;}
+  .brand .coin{font-size:28px;line-height:1;}
+  h1{font-family:var(--font-head);font-size:24px;margin:0;color:var(--lime);letter-spacing:0.2px;}
+  .subtitle{color:var(--muted);font-size:12.5px;margin-top:4px;max-width:460px;line-height:1.5;}
+  .hedge-pill{
+    background: linear-gradient(180deg,#173a1e,#122914);
+    border:1px solid #2d5a34;color:var(--lime);
+    padding:9px 16px;border-radius:8px;font-size:12.5px;font-weight:600;
+    display:flex;align-items:center;gap:8px;white-space:nowrap;height:fit-content;
+  }
+  .hedge-pill::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 8px var(--lime);}
+
+  .tabs{display:flex;gap:22px;border-bottom:1px solid var(--border);margin-bottom:20px;font-family:var(--font-head);font-size:13.5px;}
+  .tab{padding:9px 2px 12px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;}
+  .tab.active{color:var(--lime);border-color:var(--lime);}
+
+  .grid{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;}
+  @media (max-width: 880px){.grid{grid-template-columns:1fr;}}
+
+  .panel{
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:16px;margin-bottom:16px;
+  }
+  .panel-title{
+    font-family:var(--font-head);font-size:13px;font-weight:600;color:var(--text);
+    display:flex;align-items:center;gap:8px;margin-bottom:14px;
+  }
+  .panel-title .dot{width:6px;height:6px;border-radius:50%;background:var(--lime);}
+
+  label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;margin-top:12px;}
+  label:first-of-type{margin-top:0;}
+  input[type=number], select{
+    width:100%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);
+    padding:9px 10px;border-radius:6px;font-family:var(--font-mono);font-size:13px;
+  }
+  input[type=number]:focus, select:focus{outline:none;border-color:var(--lime);}
+  input[type=number]:disabled{color:var(--lime);border-color:var(--lime-dim);opacity:0.85;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  .toggle2{display:flex;background:var(--panel-2);border:1px solid var(--border);border-radius:7px;padding:3px;gap:3px;}
+  .toggle2 button{
+    flex:1;background:transparent;border:none;color:var(--muted);padding:8px 6px;border-radius:5px;
+    font-family:var(--font-head);font-size:11.5px;font-weight:600;cursor:pointer;
+  }
+  .toggle2 button.on{background:var(--lime);color:#0a1120;}
+
+  .est-note{font-size:11px;color:var(--muted-2);line-height:1.5;margin-bottom:12px;}
+  .est-sub{font-size:10px;color:var(--muted-2);margin-top:2px;}
+  .est-total{
+    margin-top:8px;background:var(--panel-2);border:1px solid var(--lime-dim);border-radius:8px;padding:12px;
+  }
+  .est-total .amt{color:var(--lime);font-size:17px;}
+  .est-line{display:flex;justify-content:space-between;}
+
+  details.adv{margin-top:14px;border-top:1px solid var(--border-soft);padding-top:10px;}
+  details.adv summary{cursor:pointer;font-size:11px;color:var(--blue);font-family:var(--font-head);}
+  details.adv .row2{margin-top:10px;}
+  details.adv label{margin-top:8px;font-size:10px;}
+  details.adv input{padding:6px 8px;font-size:11.5px;}
+
+  .metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;}
+  @media (max-width:640px){.metrics{grid-template-columns:1fr;}}
+  .metric{border-radius:10px;padding:14px 16px;border:1px solid;}
+  .metric .label{font-size:10.5px;color:var(--muted);margin-bottom:8px;letter-spacing:0.3px;}
+  .metric .val{font-family:var(--font-head);font-size:22px;font-weight:700;}
+  .metric.m-red{background:linear-gradient(180deg,#251119,#150c14);border-color:var(--red-dim);}
+  .metric.m-red .val{color:var(--red);}
+  .metric.m-amber{background:linear-gradient(180deg,#241d0d,#17130a);border-color:var(--amber-dim);}
+  .metric.m-amber .val{color:var(--amber);}
+  .metric.m-lime{background:linear-gradient(180deg,#122016,#0d1811);border-color:var(--lime-dim);}
+  .metric.m-lime .val{color:var(--lime);}
+
+  table{width:100%;border-collapse:collapse;font-size:11.5px;}
+  th{text-align:left;color:var(--muted);font-weight:500;font-size:10px;padding:8px 10px;border-bottom:1px solid var(--border);}
+  td{padding:10px;border-bottom:1px solid var(--border-soft);white-space:nowrap;}
+  tr:last-child td{border-bottom:none;}
+  .badge{padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;font-family:var(--font-head);}
+  .badge.fail{background:var(--red-dim);color:var(--red);}
+  .badge.pass{background:var(--lime-dim);color:var(--lime);}
+  .neg{color:var(--red);}
+  .pos{color:var(--lime);}
+  .muted-cell{color:var(--muted-2);}
+
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:640px){.twocol{grid-template-columns:1fr;}}
+  .resbox{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:8px;padding:14px;}
+  .resbox .rb-label{font-size:10px;color:var(--muted);margin-bottom:6px;}
+  .resbox .rb-val{font-family:var(--font-head);font-size:20px;font-weight:700;color:var(--text);}
+  .resbox .rb-sub{font-size:10.5px;color:var(--muted-2);margin-top:4px;}
+
+  .kv{display:flex;justify-content:space-between;font-size:12px;padding:8px 0;border-bottom:1px solid var(--border-soft);}
+  .kv:last-child{border-bottom:none;}
+  .kv .k{color:var(--muted);}
+
+  .levels{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:640px){.levels{grid-template-columns:1fr;}}
+  .lv-head{font-family:var(--font-head);font-size:12px;font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between;}
+  .lv-box{border:1px solid var(--border-soft);border-radius:8px;padding:12px;}
+  .lv-box.buy{border-top:2px solid var(--lime);}
+  .lv-box.sell{border-top:2px solid var(--red);}
+  .lv-sub{font-size:10px;color:var(--muted);margin:10px 0 4px;}
+
+  .banner{border-radius:10px;padding:16px;margin-top:16px;border:1px solid;}
+  .banner.bad{background:linear-gradient(180deg,#25121a,#160b10);border-color:#5a2233;}
+  .banner.good{background:linear-gradient(180deg,#122016,#0d1811);border-color:var(--lime-dim);}
+  .banner .bt{font-family:var(--font-head);font-weight:700;font-size:13px;margin-bottom:4px;}
+  .banner.bad .bt{color:var(--red);}
+  .banner.good .bt{color:var(--lime);}
+  .banner .bd{font-size:11.5px;color:var(--muted);line-height:1.6;}
+
+  .assump{
+    font-size:10.5px;color:var(--muted-2);background:var(--panel-2);border:1px dashed var(--border);
+    border-radius:8px;padding:10px 12px;margin-bottom:16px;line-height:1.6;
+  }
+  .assump b{color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="coin">💸</div>
+      <div>
+        <h1>ProfitSplit</h1>
+        <div class="subtitle">Simulateur stratégique de couverture 1 compte vs Broker, avec gestion de marge et capital requis.</div>
+      </div>
+    </div>
+    <div class="hedge-pill">HEDGE 1 COMPTE ACTIF</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active">Simulateur</div>
+    <div class="tab">Portefeuille Hedge</div>
+  </div>
+
+  <div class="assump">
+    <b>Reconstruction non officielle, calibrée sur 13 exemples réels.</b> L'outil source est protégé par authentification (Discord/Whop) : son code n'est pas accessible. Découverte majeure : les lots Prop suivent une formule de sizing par risque simple, basée sur <b>Max Daily DD</b> (pas le Drawdown Max global comme précédemment supposé) : <code>Lots = (Taille compte × Max Daily DD %) / (SL × 100)</code> — confirmée à l'identique sur 12 exemples/13, indépendamment de la phase, du levier ou du prix. Le % de marge Prop en découle exactement. Le sizing des lots Hedge et la répartition fine du capital requis restent approximatifs (~5-15% d'écart). Constantes réglables dans « Paramètres avancés ».
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="panel">
+        <div class="panel-title"><span class="dot"></span>Paramètres d'entrée</div>
+
+        <div class="toggle2">
+          <button id="btnPhase1" class="on">1 PHASE (CHALLENGE)</button>
+          <button id="btnPhase2">2 PHASES (CHALLENGE)</button>
+        </div>
+
+        <label>Taille du compte Prop ($)</label>
+        <input type="number" id="accountSize" value="50000">
+
+        <label>Coût de la Challenge ($)</label>
+        <input type="number" id="challengeCost" value="300">
+
+        <label>Gain net désiré ($)</label>
+        <input type="number" id="desiredGain" value="250">
+
+        <div class="row2" id="row-target-1p">
+          <div>
+            <label>Objectif Challenge (%)</label>
+            <input type="number" id="targetPct" value="10" step="0.1">
+          </div>
+          <div>
+            <label>Drawdown maximum (%)</label>
+            <input type="number" id="maxDDPct" value="6" step="0.1">
+          </div>
+        </div>
+
+        <div class="row2" id="row-target-2p" style="display:none;">
+          <div>
+            <label>Target F1 (%)</label>
+            <input type="number" id="targetF1Pct" value="8" step="0.1">
+          </div>
+          <div>
+            <label>Target F2 (%)</label>
+            <input type="number" id="targetF2Pct" value="5" step="0.1">
+          </div>
+        </div>
+        <div id="row-target-2p-dd" style="display:none;">
+          <label>Drawdown maximum (%)</label>
+          <input type="number" id="maxDDPct2" value="10" step="0.1">
+        </div>
+
+        <label>Profit Split (%)</label>
+        <input type="number" id="profitSplit" value="80" step="1">
+
+        <label>Objectif Payout Funded (%)</label>
+        <input type="number" id="payoutTargetPct" value="3" step="0.1">
+
+        <details class="adv">
+          <summary>⚙ Constantes du modèle (calibrées)</summary>
+          <label>Coussin de sécurité fixe ($)</label>
+          <input type="number" id="safetyBuffer" value="300" step="5">
+        </details>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><span class="dot" style="background:var(--amber)"></span>Capital requis estimé</div>
+        <div class="est-note">Capital calculé pour couvrir le scénario le plus défavorable sur le broker, incluant la marge opérationnelle nécessaire pour l'or (XAUUSD) et un coussin de sécurité de $300 pour écarts/slippage.</div>
+
+        <div class="est-total" style="margin-bottom:10px;">
+          <div class="est-line">
+            <span id="out-challengeLabel">Phase 1 (Challenge) — Dépôt min.</span>
+            <span class="amt" id="out-challengeDeposit" style="color:var(--text);font-size:15px;"></span>
+          </div>
+          <div class="est-sub" id="out-challengeDetail"></div>
+        </div>
+
+        <div class="est-total" id="box-f2" style="margin-bottom:10px;display:none;">
+          <div class="est-line">
+            <span>Phase 2 — Dépôt additionnel</span>
+            <span class="amt" id="out-f2Deposit" style="color:var(--text);font-size:15px;"></span>
+          </div>
+          <div class="est-sub" id="out-f2Detail"></div>
+        </div>
+
+        <div class="est-total" style="margin-bottom:10px;">
+          <div class="est-line">
+            <span id="out-fundedLabel">Phase Funded — Dépôt min.</span>
+            <span class="amt" id="out-fundedDeposit" style="color:var(--text);font-size:15px;"></span>
+          </div>
+          <div class="est-sub" id="out-fundedDetail"></div>
+        </div>
+
+        <div class="est-total">
+          <div class="est-line">
+            <span>Couverture totale combinée</span>
+            <span class="amt" id="out-totalCoverage"></span>
+          </div>
+          <div class="est-sub">Dépôt Funded + exposition broker en cas de Challenge réussie</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="metrics">
+        <div class="metric m-red">
+          <div class="label">DRAWDOWN MAX PROP ($)</div>
+          <div class="val" id="out-maxDD"></div>
+        </div>
+        <div class="metric m-amber">
+          <div class="label">CAPITAL COUVERTURE TOTALE</div>
+          <div class="val" id="out-totalCoverage2"></div>
+        </div>
+        <div class="metric m-lime">
+          <div class="label">RÉCUPÉRATION SI BREACH FUNDED</div>
+          <div class="val" id="out-recoveryBreach"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><span class="dot"></span>Tableau des passages : Challenge + Hedging (1 compte)</div>
+        <table>
+          <thead>
+            <tr><th>Phase</th><th>Résultat Prop</th><th>Coût Challenge</th><th>P/L Broker (Hedge)</th><th>Cumul déployé</th><th>Gain net réel ($)</th></tr>
+          </thead>
+          <tbody id="stepsTable"></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><span class="dot" style="background:var(--blue)"></span>Calculateur Size XAU/USD (Or) &amp; Gestion du risque</div>
+        <div class="row2">
+          <div>
+            <label>Phase opérationnelle actuelle</label>
+            <select id="phaseSel">
+              <option value="challenge">Phase 1 (Challenge)</option>
+              <option value="f2" id="opt-f2" hidden>Phase 2 (Challenge)</option>
+              <option value="funded">Phase Funded</option>
+            </select>
+          </div>
+          <div>
+            <label>Max Daily DD (%)</label>
+            <input type="number" id="maxDailyDD" value="2.3" step="0.1">
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label style="display:flex;justify-content:space-between;align-items:center;">
+              <span>Stop Loss (points broker, 0.01)</span>
+              <span style="display:flex;align-items:center;gap:4px;font-size:9.5px;color:var(--blue);cursor:pointer;">
+                <input type="checkbox" id="autoSL" checked style="width:11px;height:11px;margin:0;">Auto (marge 65-70%)
+              </span>
+            </label>
+            <input type="number" id="slPoints" value="1500" step="10">
+          </div>
+          <div>
+            <label style="display:flex;justify-content:space-between;align-items:center;">
+              <span>Prix d'entrée XAU</span>
+              <span id="priceStatus" style="font-size:9px;color:var(--muted-2);"></span>
+            </label>
+            <div style="display:flex;gap:6px;">
+              <input type="number" id="entryPrice" value="4284.55" step="0.01" style="flex:1;">
+              <button id="refreshPriceBtn" type="button" title="Récupérer le prix actuel de l'or"
+                style="background:var(--panel-2);border:1px solid var(--border);color:var(--lime);border-radius:6px;padding:0 12px;cursor:pointer;font-size:15px;line-height:1;">↻</button>
+            </div>
+          </div>
+        </div>
+        <div class="row2">
+          <div>
+            <label>Levier Prop Firm</label>
+            <input type="number" id="propLeverage" value="10" step="1">
+          </div>
+          <div>
+            <label>Levier compte réel (Broker)</label>
+            <input type="number" id="brokerLeverage" value="500" step="10">
+          </div>
+        </div>
+
+        <details class="adv">
+          <summary>⚙ Constantes de contrat (calibrées)</summary>
+          <div class="row2">
+            <div>
+              <label>Valeur / point / lot std. ($)</label>
+              <input type="number" id="valuePerPoint" value="100" step="1">
+            </div>
+          </div>
+        </details>
+
+        <div class="twocol" style="margin-top:16px;">
+          <div class="resbox">
+            <div class="rb-label">LOTS MAX SUR PROP</div>
+            <div class="rb-val" id="out-propLots"></div>
+            <div class="rb-sub">Marge utilisée : <span id="out-propMargin"></span></div>
+          </div>
+          <div class="resbox">
+            <div class="rb-label">LOTS SUR COMPTE RÉEL (HEDGE)</div>
+            <div class="rb-val" id="out-hedgeLots"></div>
+            <div class="rb-sub">Marge utilisée : <span id="out-hedgeMargin"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><span class="dot" style="background:var(--amber)"></span>Niveaux opérationnels &amp; coordonnées Stop Loss (SL)</div>
+        <div class="levels">
+          <div class="lv-box buy">
+            <div class="lv-head"><span style="color:var(--lime)">ACHAT (Long) — Prop</span><span style="color:var(--red)">Hedge (Sell)</span></div>
+            <div class="kv"><span class="k">Stop Loss</span><span id="lv-buy-sl-prop"></span></div>
+            <div class="kv"><span class="k">Take Profit (RR 1:1)</span><span id="lv-buy-tp1-prop"></span></div>
+            <div class="kv"><span class="k">Take Profit (RR 1:2)</span><span id="lv-buy-tp2-prop"></span></div>
+            <div class="lv-sub">Position miroir sur le broker (vente)</div>
+            <div class="kv"><span class="k">Stop Loss</span><span id="lv-buy-sl-hedge"></span></div>
+            <div class="kv"><span class="k">Take Profit (RR 1:1)</span><span id="lv-buy-tp1-hedge"></span></div>
+            <div class="kv"><span class="k">Take Profit (RR 1:2)</span><span id="lv-buy-tp2-hedge"></span></div>
+          </div>
+          <div class="lv-box sell">
+            <div class="lv-head"><span style="color:var(--red)">VENTE (Short) — Prop</span><span style="color:var(--lime)">Hedge (Buy)</span></div>
+            <div class="kv"><span class="k">Stop Loss</span><span id="lv-sell-sl-prop"></span></div>
+            <div class="kv"><span class="k">Take Profit (RR 1:1)</span><span id="lv-sell-tp1-prop"></span></div>
+            <div class="kv"><span class="k">Take Profit (RR 1:2)</span><span id="lv-sell-tp2-prop"></span></div>
+            <div class="lv-sub">Position miroir sur le broker (achat)</div>
+            <div class="kv"><span class="k">Stop Loss</span><span id="lv-sell-sl-hedge"></span></div>
+            <div class="kv"><span class="k">Take Profit (RR 1:1)</span><span id="lv-sell-tp1-hedge"></span></div>
+            <div class="kv"><span class="k">Take Profit (RR 1:2)</span><span id="lv-sell-tp2-hedge"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><span class="dot"></span>Rendement &amp; risque économique</div>
+        <div class="twocol">
+          <div class="resbox">
+            <div class="kv"><span class="k">Compte Prop (pour $1000)</span><span id="out-ptValProp"></span></div>
+            <div class="kv"><span class="k">Broker réel (pour $1000)</span><span id="out-ptValBroker"></span></div>
+          </div>
+          <div class="resbox">
+            <div class="rb-label" style="margin-bottom:8px;">ÉQUILIBRE DE L'OPÉRATION HEDGE</div>
+            <div class="kv"><span class="k">Perte Prop (si SL touché)</span><span class="neg" id="out-lossIfSL"></span></div>
+            <div class="kv"><span class="k">Gain Broker (recovery)</span><span class="pos" id="out-gainRecovery"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><span class="dot" style="background:var(--amber)"></span>Soutenabilité du Payout &amp; récupération réelle</div>
+        <div class="twocol">
+          <div class="resbox">
+            <div class="rb-label" style="margin-bottom:8px;">RÉPARTITION D'UN PAYOUT (PROP)</div>
+            <div class="kv"><span class="k">Objectif profit Prop</span><span id="out-payoutTargetProfit"></span></div>
+            <div class="kv"><span class="k">Quota Payout (<span id="out-splitPct"></span>)</span><span id="out-payoutShare"></span></div>
+            <div class="kv"><span class="k">Total reçu de la Prop</span><span id="out-payoutShare2"></span></div>
+          </div>
+          <div class="resbox">
+            <div class="rb-label" style="margin-bottom:8px;">ANALYSE DE RÉCUPÉRATION</div>
+            <div class="kv"><span class="k">Perte Prop / Recovery Hedge</span><span class="pos" id="out-recoveryLine"></span></div>
+            <div class="kv"><span class="k">Coût activation Challenge</span><span class="neg" id="out-costLine"></span></div>
+            <div class="kv"><span class="k">Net si la Prop breach</span><span id="out-netBreach"></span></div>
+            <div class="kv"><span class="k">Net si Payout obtenu</span><span id="out-netPayout"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="banner" id="banner">
+        <div class="bt" id="banner-title"></div>
+        <div class="bd" id="banner-body"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const num = id => parseFloat($(id).value) || 0;
+const fmt = n => (n<0?'-$':'$') + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtPct = n => n.toFixed(2)+'%';
+
+$('refreshPriceBtn').addEventListener('click', async () => {
+  const btn = $('refreshPriceBtn');
+  const status = $('priceStatus');
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  status.textContent = 'Récupération…';
+  status.style.color = 'var(--muted-2)';
+  try {
+    const res = await fetch('https://xaus.com/api/v1/spot?compact=1');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    const price = data.spot_usd_oz ?? data.xau?.price;
+    if(!price) throw new Error('Réponse inattendue');
+    $('entryPrice').value = price.toFixed(2);
+    const now = new Date();
+    status.textContent = `Mis à jour ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+    status.style.color = 'var(--lime)';
+    recalc();
+  } catch(err) {
+    status.textContent = 'Échec — vérifie ta connexion ou entre le prix manuellement';
+    status.style.color = 'var(--red)';
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+});
+
+let phaseMode = 1;
+function setPhaseMode(mode){
+  phaseMode = mode;
+  $('btnPhase1').classList.toggle('on', mode===1);
+  $('btnPhase2').classList.toggle('on', mode===2);
+  $('row-target-1p').style.display = mode===1 ? 'grid' : 'none';
+  $('row-target-2p').style.display = mode===2 ? 'grid' : 'none';
+  $('row-target-2p-dd').style.display = mode===2 ? 'block' : 'none';
+  $('box-f2').style.display = mode===2 ? 'block' : 'none';
+  $('opt-f2').hidden = mode===1;
+  if(mode===1 && $('phaseSel').value==='f2') $('phaseSel').value='challenge';
+  recalc();
+}
+$('btnPhase1').onclick = () => setPhaseMode(1);
+$('btnPhase2').onclick = () => setPhaseMode(2);
+
+document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', recalc));
+
+function recalc(){
+  const accountSize = num('accountSize');
+  const challengeCost = num('challengeCost');
+  const desiredGain = num('desiredGain');
+  const profitSplit = num('profitSplit');
+  const payoutTargetPct = num('payoutTargetPct');
+  const safetyBuffer = num('safetyBuffer');
+
+  const maxDailyDD = num('maxDailyDD');
+  const entryPrice = num('entryPrice');
+  const propLeverage = num('propLeverage');
+  const POINT_SCALE = 100; // 1 broker "point" = $0.01 → 100 broker points = $1 (internal unit)
+
+  if($('autoSL').checked && propLeverage>0){
+    const targetMarginPct = 67.5; // midpoint of the 65-70% band
+    const autoSlValueDollars = (maxDailyDD*entryPrice)/(targetMarginPct*propLeverage);
+    $('slPoints').value = Math.round(autoSlValueDollars*POINT_SCALE);
+    $('slPoints').disabled = true;
+  } else {
+    $('slPoints').disabled = false;
+  }
+  const slPoints = num('slPoints')/POINT_SCALE; // convert broker points → internal $ unit
+  const brokerLeverage = num('brokerLeverage');
+  const valuePerPoint = num('valuePerPoint');
+  const phaseSel = $('phaseSel').value;
+
+  const maxDDPct = phaseMode===2 ? num('maxDDPct2') : num('maxDDPct');
+  const maxDrawdown = accountSize * maxDDPct/100;
+  const payoutTargetProfit = accountSize * payoutTargetPct/100;
+  const payoutShare = payoutTargetProfit * profitSplit/100;
+
+  // — calibrated sizing rule (unified, confirmed on 9/10 real examples) —
+  // Prop lots are pure risk-based sizing off the "Max Daily DD" budget,
+  // independent of phase, drawdown%, leverage or price.
+  const propLotsUnified = slPoints>0 ? (accountSize*maxDailyDD/100)/(slPoints*valuePerPoint) : 0;
+  function hedgeLotsChallenge(k){
+    return slPoints>0 ? k*Math.sqrt(challengeCost*desiredGain)/(slPoints*valuePerPoint) : 0;
+  }
+  function hedgeLotsFundedCalc(){
+    return slPoints>0 ? 1.1*(challengeCost+desiredGain)/(slPoints*valuePerPoint) : 0;
+  }
+  function marginDollar(lots, leverage){ return lots*valuePerPoint*entryPrice/(leverage||1); }
+  function marginPctOf(lots, leverage, base){ return base>0 ? marginDollar(lots,leverage)/base*100 : 0; }
+
+  function phaseCalc(referenceProfit, hedgeLotsVal){
+    const propLots = propLotsUnified;
+    const hedgeRatio = propLots>0 ? hedgeLotsVal/propLots : 0;
+    const perdita = referenceProfit*hedgeRatio;
+    const margine = marginDollar(hedgeLotsVal, brokerLeverage);
+    const fail = maxDrawdown*hedgeRatio;
+    return {propLots, hedgeLots:hedgeLotsVal, hedgeRatio, perdita, margine, fail};
+  }
+
+  let rows, challengeDeposit, f2Deposit=0, fundedDeposit, totalCoverage;
+  let dispPropLots, dispHedgeLots, dispPropMarginPct, dispHedgeMarginPct, dispPropRisk, dispPropMargin;
+  let recoveryBreach, perditaMaxFunded, netPayout, netBreach;
+
+  if(phaseMode===1){
+    const targetPct = num('targetPct');
+    const targetProfit = accountSize*targetPct/100;
+
+    const c1 = phaseCalc(maxDrawdown, hedgeLotsChallenge(0.8));
+    const cF = phaseCalc(maxDrawdown, hedgeLotsFundedCalc());
+    // perdita for challenge uses target profit, not maxDrawdown, for the "pass" magnitude
+    const perdita1 = targetProfit*c1.hedgeRatio;
+    perditaMaxFunded = payoutTargetProfit*cF.hedgeRatio;
+    recoveryBreach = maxDrawdown*cF.hedgeRatio;
+
+    challengeDeposit = perdita1 + c1.margine + safetyBuffer;
+    fundedDeposit = perditaMaxFunded + cF.margine + safetyBuffer;
+    totalCoverage = fundedDeposit + perdita1;
+
+    rows = [
+      {phase:'Challenge 1 compte', res:'ÉCHEC', badge:'fail', cost:-challengeCost, pl:c1.fail, cum:challengeDeposit, net:c1.fail-challengeCost},
+      {phase:'Challenge 1 compte', res:'RÉUSSIE', badge:'pass', cost:-challengeCost, pl:-perdita1, cum:challengeDeposit, net:-perdita1-challengeCost},
+      {phase:'Funded vs Broker', res:'PROP BREACH', badge:'fail', cost:0, pl:recoveryBreach, cum:totalCoverage, net:recoveryBreach-challengeCost},
+      {phase:'Funded vs Broker', res:'PROP PAYOUT', badge:'pass', cost:0, pl:-perditaMaxFunded, cum:totalCoverage, net:payoutShare-perditaMaxFunded-challengeCost},
+    ];
+
+    $('out-challengeLabel').textContent='Phase 1 (Challenge) — Dépôt min.';
+    $('out-fundedLabel').textContent='Phase Funded — Dépôt min.';
+    $('out-challengeDetail').textContent = `Perte max ${fmt(perdita1)} · Marge ${fmt(c1.margine)} · Sécurité ${fmt(safetyBuffer)}`;
+    $('out-fundedDetail').textContent = `Perte max ${fmt(perditaMaxFunded)} · Marge ${fmt(cF.margine)} · Sécurité ${fmt(safetyBuffer)}`;
+
+    netBreach = recoveryBreach - challengeCost;
+    netPayout = payoutShare - perditaMaxFunded - challengeCost;
+
+    // XAU display uses challenge or funded lots depending on selector
+    if(phaseSel==='funded'){ dispPropLots=cF.propLots; dispHedgeLots=cF.hedgeLots; }
+    else { dispPropLots=c1.propLots; dispHedgeLots=c1.hedgeLots; }
+
+  } else {
+    const targetF1Pct = num('targetF1Pct');
+    const targetF2Pct = num('targetF2Pct');
+    const targetF1Profit = accountSize*targetF1Pct/100;
+    const targetF2Profit = accountSize*targetF2Pct/100;
+
+    // Calibrated finding: in 2-phase mode, Prop lot size is CONSTANT across
+    // F1/F2/Funded — pure margin-based on overall max drawdown (no risk floor).
+    // Hedge lots scale with phase progression: F1=10%, F2=20%, Funded=30% of Prop lots.
+    const propLots2p = propLotsUnified;
+    const hedgeLotsF1 = propLots2p*0.1;
+    const hedgeLotsF2 = propLots2p*0.2;
+    const hedgeLotsF3 = propLots2p*0.3;
+
+    const f1 = {propLots:propLots2p, hedgeLots:hedgeLotsF1, hedgeRatio:0.1,
+                perdita: targetF1Profit*0.1, margine: marginDollar(hedgeLotsF1, brokerLeverage),
+                fail: maxDrawdown*0.1};
+    const f2 = {propLots:propLots2p, hedgeLots:hedgeLotsF2, hedgeRatio:0.2,
+                perdita: targetF2Profit*0.2, margine: marginDollar(hedgeLotsF2, brokerLeverage),
+                fail: maxDrawdown*0.2};
+    const cF = {propLots:propLots2p, hedgeLots:hedgeLotsF3, hedgeRatio:0.3,
+                perdita: payoutTargetProfit*0.3, margine: marginDollar(hedgeLotsF3, brokerLeverage),
+                fail: maxDrawdown*0.3};
+
+    perditaMaxFunded = cF.perdita;
+    recoveryBreach = maxDrawdown*0.3*0.5;
+
+    challengeDeposit = f1.perdita + f1.margine + safetyBuffer;
+    f2Deposit = f2.perdita + (f2.margine - f1.margine);
+    fundedDeposit = perditaMaxFunded + (cF.margine - f2.margine);
+    totalCoverage = challengeDeposit + f2Deposit + fundedDeposit;
+
+    rows = [
+      {phase:'Fase 1 (Challenge)', res:'ÉCHEC', badge:'fail', cost:-challengeCost, pl:f1.fail, cum:challengeDeposit, net:f1.fail-challengeCost},
+      {phase:'Fase 1 (Challenge)', res:'RÉUSSIE', badge:'pass', cost:-challengeCost, pl:-f1.perdita, cum:challengeDeposit, netText:'Passe en Phase 2'},
+      {phase:'Fase 2 (Challenge)', res:'ÉCHEC', badge:'fail', cost:-challengeCost, pl:f2.fail, cum:challengeDeposit+f2Deposit, net:f2.fail-challengeCost},
+      {phase:'Fase 2 (Challenge)', res:'RÉUSSIE', badge:'pass', cost:-challengeCost, pl:-f2.perdita, cum:challengeDeposit+f2Deposit, netText:`Financé avec ${fmt(accountSize).replace('.00','')}`},
+      {phase:'Funded (1er Payout)', res:'PROP BREACH', badge:'fail', cost:-challengeCost, pl:cF.fail, cum:totalCoverage, net:cF.fail-challengeCost},
+      {phase:'Funded (1er Payout)', res:'PROP PAYOUT', badge:'pass', cost:0, pl:-perditaMaxFunded, cum:totalCoverage, net:payoutShare-perditaMaxFunded-challengeCost},
+    ];
+
+    $('out-challengeLabel').textContent='Phase 1 — Dépôt initial';
+    $('out-fundedLabel').textContent='Funded — Dépôt additionnel';
+    $('out-challengeDetail').textContent = `Perte F1 ${fmt(f1.perdita)} · Marge ${fmt(f1.margine)} · Sécurité ${fmt(safetyBuffer)}`;
+    $('out-f2Detail').textContent = `Perte F2 ${fmt(f2.perdita)} · Marge inc. ${fmt(f2.margine-f1.margine)}`;
+    $('out-fundedDetail').textContent = `Perte Funded ${fmt(perditaMaxFunded)} · Marge inc. ${fmt(cF.margine-f2.margine)}`;
+    $('out-f2Deposit').textContent = fmt(f2Deposit);
+
+    netBreach = recoveryBreach - challengeCost;
+    netPayout = payoutShare - perditaMaxFunded - challengeCost;
+
+    if(phaseSel==='f2'){ dispPropLots=f2.propLots; dispHedgeLots=f2.hedgeLots; }
+    else if(phaseSel==='funded'){ dispPropLots=cF.propLots; dispHedgeLots=cF.hedgeLots; }
+    else { dispPropLots=f1.propLots; dispHedgeLots=f1.hedgeLots; }
+  }
+
+  $('out-challengeDeposit').textContent = fmt(challengeDeposit);
+  $('out-fundedDeposit').textContent = fmt(fundedDeposit);
+  $('out-totalCoverage').textContent = fmt(totalCoverage);
+  $('out-totalCoverage2').textContent = fmt(totalCoverage);
+  $('out-maxDD').textContent = fmt(maxDrawdown);
+  $('out-recoveryBreach').textContent = fmt(recoveryBreach);
+
+  $('stepsTable').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.phase}</td>
+      <td><span class="badge ${r.badge}">${r.res}</span></td>
+      <td class="${r.cost<0?'neg':'muted-cell'}">${r.cost===0?'—':fmt(r.cost)}</td>
+      <td class="${r.pl<0?'neg':'pos'}">${fmt(r.pl)}</td>
+      <td class="muted-cell">${fmt(r.cum)}</td>
+      <td class="${r.netText? 'muted-cell' : (r.net<0?'neg':'pos')}">${r.netText ? r.netText : fmt(r.net)}</td>
+    </tr>`).join('');
+
+  dispPropMargin = marginDollar(dispPropLots, propLeverage);
+  dispPropMarginPct = marginPctOf(dispPropLots, propLeverage, accountSize);
+  dispHedgeMarginPct = marginPctOf(dispHedgeLots, brokerLeverage, totalCoverage);
+
+  $('out-propLots').textContent = dispPropLots.toFixed(2)+' lots';
+  $('out-hedgeLots').textContent = dispHedgeLots.toFixed(2)+' lots';
+  $('out-propMargin').textContent = fmtPct(dispPropMarginPct);
+  $('out-propMargin').style.color = dispPropMarginPct > 100 ? 'var(--red)' : '';
+  $('out-hedgeMargin').textContent = fmtPct(dispHedgeMarginPct);
+
+  // levels
+  function setLevels(prefix, dir){
+    const s = dir===1 ? slPoints : -slPoints;
+    const slProp = entryPrice - s;
+    const tp1Prop = entryPrice + s;
+    const tp2Prop = entryPrice + s*2;
+    const slHedge = entryPrice + s;
+    const tp1Hedge = entryPrice - s;
+    const tp2Hedge = entryPrice - s*2;
+    $(`lv-${prefix}-sl-prop`).textContent = slProp.toFixed(2);
+    $(`lv-${prefix}-tp1-prop`).textContent = tp1Prop.toFixed(2);
+    $(`lv-${prefix}-tp2-prop`).textContent = tp2Prop.toFixed(2);
+    $(`lv-${prefix}-sl-hedge`).textContent = slHedge.toFixed(2);
+    $(`lv-${prefix}-tp1-hedge`).textContent = tp1Hedge.toFixed(2);
+    $(`lv-${prefix}-tp2-hedge`).textContent = tp2Hedge.toFixed(2);
+  }
+  setLevels('buy', 1);
+  setLevels('sell', -1);
+
+  // rendement & risque (based on currently selected phase)
+  const ptValProp1000 = accountSize>0 ? (dispPropLots*valuePerPoint)/(accountSize/1000) : 0;
+  const ptValBroker1000 = accountSize>0 ? (dispHedgeLots*valuePerPoint)/(accountSize/1000) : 0;
+  $('out-ptValProp').textContent = fmt(ptValProp1000)+' / point';
+  $('out-ptValBroker').textContent = fmt(ptValBroker1000)+' / point';
+
+  const lossIfSL = -(dispPropLots * valuePerPoint * slPoints);
+  const gainRecovery = dispHedgeLots * valuePerPoint * slPoints;
+  $('out-lossIfSL').textContent = fmt(lossIfSL);
+  $('out-gainRecovery').textContent = fmt(gainRecovery);
+
+  // payout sustainability
+  $('out-payoutTargetProfit').textContent = fmt(payoutTargetProfit);
+  $('out-splitPct').textContent = profitSplit+'%';
+  $('out-payoutShare').textContent = fmt(payoutShare);
+  $('out-payoutShare2').textContent = fmt(payoutShare);
+  $('out-recoveryLine').textContent = fmt(recoveryBreach);
+  $('out-costLine').textContent = fmt(-challengeCost);
+  $('out-netBreach').innerHTML = `<span class="${netBreach<0?'neg':'pos'}">${fmt(netBreach)}</span>`;
+  $('out-netPayout').innerHTML = `<span class="${netPayout<0?'neg':'pos'}">${fmt(netPayout)}</span>`;
+
+  // banner
+  const bannerEl = $('banner');
+  if(netPayout < 0){
+    bannerEl.className='banner bad';
+    $('banner-title').textContent = 'Cycles de Payout nécessaires : Non atteignable';
+    $('banner-body').textContent = `Espérance négative : la quote-part de payout (${fmt(payoutShare)}) ne couvre pas les pertes/coûts côté Broker (${fmt(perditaMaxFunded+challengeCost)}). Augmente l'objectif de profit, réduis le Stop Loss, ou augmente le levier Prop.`;
+  } else {
+    const debtToClear = (totalCoverage - recoveryBreach + challengeCost);
+    const cycles = Math.max(1, Math.ceil(debtToClear/payoutShare));
+    const netProfitAfter = cycles*payoutShare - debtToClear;
+    bannerEl.className='banner good';
+    $('banner-title').textContent = `Cycles de Payout nécessaires : ${cycles} cycle${cycles>1?'s':''}`;
+    $('banner-body').textContent = `Espérance positive : il faudra environ ${cycles} payout${cycles>1?'s':''} consécutif${cycles>1?'s':''} pour éteindre le capital exposé et atteindre un profit net positif d'environ ${fmt(netProfitAfter)}.`;
+  }
+}
+
+recalc();
+</script>
+</body>
+</html>
