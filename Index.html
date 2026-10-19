@@ -328,6 +328,71 @@
             border-bottom: none;
         }
 
+        /* Glisser-déposer dans la sélection */
+        .selected-item {
+            gap: 0.5rem;
+            background: var(--surface);
+            cursor: grab;
+            user-select: none;
+        }
+
+        .selected-item:active {
+            cursor: grabbing;
+        }
+
+        .selected-item.dragging {
+            opacity: 0.4;
+        }
+
+        .selected-item.drop-before {
+            box-shadow: inset 0 3px 0 var(--accent);
+        }
+
+        .selected-item.drop-after {
+            box-shadow: inset 0 -3px 0 var(--accent);
+        }
+
+        .drag-handle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            line-height: 1;
+            flex-shrink: 0;
+            letter-spacing: -2px;
+        }
+
+        .selected-title {
+            flex: 1;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .move-btns {
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .move-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.6rem;
+            line-height: 1;
+            padding: 2px 6px;
+            border-radius: 0.25rem;
+        }
+
+        .move-btn:hover:not(:disabled) {
+            background: #eff6ff;
+            color: var(--primary);
+        }
+
+        .move-btn:disabled {
+            opacity: 0.25;
+            cursor: default;
+        }
+
         .remove-btn {
             background: none;
             border: none;
@@ -782,6 +847,8 @@ Donne-nous la paix.`
                 this.connectionStatus = 'connecting';
                 this.audioPlayer = null;
                 this.currentAudioBtn = null;
+                this.draggedChantId = null;
+                this.modele = 'caromb'; // modèle par défaut
 
                 this.init();
             }
@@ -994,6 +1061,30 @@ Donne-nous la paix.`
                 this.render();
             }
 
+            // Déplace un chant de la sélection avant/après un autre chant (glisser-déposer)
+            moveSelection(chantId, targetId, after) {
+                if (chantId === targetId) return;
+                const rest = this.selectedChants.filter(id => id !== chantId);
+                let index = rest.indexOf(targetId);
+                if (index === -1) return;
+                if (after) index++;
+                rest.splice(index, 0, chantId);
+                this.selectedChants = rest;
+                this.render();
+            }
+
+            // Déplace un chant d'un cran vers le haut (-1) ou le bas (+1) (flèches)
+            moveSelectionBy(chantId, delta) {
+                const from = this.selectedChants.indexOf(chantId);
+                const to = from + delta;
+                if (from === -1 || to < 0 || to >= this.selectedChants.length) return;
+                const arr = [...this.selectedChants];
+                arr.splice(from, 1);
+                arr.splice(to, 0, chantId);
+                this.selectedChants = arr;
+                this.render();
+            }
+
             getFilteredChants() {
                 let filtered = [...this.chants];
 
@@ -1046,7 +1137,7 @@ Donne-nous la paix.`
 
                 // IMPORTANT : Récupérer le modèle AVANT le render() !
                 const modeleSelect = document.getElementById('modeleSelect');
-                const modele = modeleSelect ? modeleSelect.value : 'mazan';
+                const modele = modeleSelect ? modeleSelect.value : this.modele;
                 console.log('Modèle sélectionné:', modele);
 
                 this.isGenerating = true;
@@ -1239,6 +1330,45 @@ Donne-nous la paix.`
                     // Utiliser le layout standard 4:3 (centré automatiquement)
                     pptx.layout = 'LAYOUT_4x3';
 
+                    // MASQUES DE DIAPOSITIVES : fond noir + zone de texte prédéfinie (police, taille,
+                    // interligne, langue française). Ainsi, une diapo ajoutée à la main dans
+                    // PowerPoint (avec cette disposition) reste noire, avec la bonne taille de police.
+                    const masterName = 'CHANTS_' + currentConfig.name.toUpperCase();
+                    currentConfig.masterName = masterName;
+
+                    pptx.defineSlideMaster({
+                        title: masterName,
+                        background: { color: '000000' },
+                        objects: [
+                            {
+                                placeholder: {
+                                    options: {
+                                        name: 'paroles',
+                                        type: 'body',
+                                        x: currentConfig.textX || 0.5,
+                                        y: currentConfig.textY,
+                                        w: currentConfig.textW || 9,
+                                        h: currentConfig.textH,
+                                        fontSize: currentConfig.fontSize,
+                                        color: 'FFFFFF',
+                                        bold: true,
+                                        align: 'center',
+                                        valign: 'top',
+                                        lineSpacing: currentConfig.lineSpacing,
+                                        lang: 'fr-FR'
+                                    },
+                                    text: 'Cliquez pour ajouter les paroles'
+                                }
+                            }
+                        ]
+                    });
+
+                    // Disposition entièrement noire (séparateur entre deux chants)
+                    pptx.defineSlideMaster({
+                        title: 'DIAPO_NOIRE',
+                        background: { color: '000000' }
+                    });
+
                     // Ajouter chaque chant sélectionné
                     const chantsToAdd = this.selectedChants
                         .map(id => this.chants.find(c => c.id === id))
@@ -1250,8 +1380,7 @@ Donne-nous la paix.`
                         
                         // DIAPO NOIRE entre les chants (pas avant le premier chant)
                         if (i > 0) {
-                            const blackSlide = pptx.addSlide();
-                            blackSlide.background = { fill: '000000' };
+                            pptx.addSlide({ masterName: 'DIAPO_NOIRE' });
                         }
 
                         // Parser les paroles EN CONSERVANT L'ORDRE ORIGINAL
@@ -1307,23 +1436,16 @@ Donne-nous la paix.`
                             
                             // Créer une slide pour chaque bloc
                             for (let block of textBlocks) {
-                                const slide = pptx.addSlide();
-                                slide.background = { fill: '000000' };
+                                const slide = pptx.addSlide({ masterName: currentConfig.masterName });
                                 
                                 // Utiliser l'interligne de la config
                                 const lineSpacing = currentConfig.lineSpacing;
                                 
                                 // Ajouter le texte avec une seule zone
                                 slide.addText(cleanTextForPPT(block.text), {
-                                    x: currentConfig.textX || 0.5,
-                                    y: currentConfig.textY,
-                                    w: currentConfig.textW || 9,
-                                    h: currentConfig.textH,
+                                    placeholder: 'paroles',
+                                    lang: 'fr-FR',
                                     fontSize: block.fontSize,
-                                    color: 'FFFFFF',
-                                    bold: true,
-                                    align: 'center',
-                                    valign: 'top',
                                     lineSpacing: lineSpacing
                                 });
                             }
@@ -1343,22 +1465,15 @@ Donne-nous la paix.`
                                     );
                                     
                                     for (let block of refrainBlocks) {
-                                        const refrainSlide = pptx.addSlide();
-                                        refrainSlide.background = { fill: '000000' };
+                                        const refrainSlide = pptx.addSlide({ masterName: currentConfig.masterName });
                                         
                                         // Utiliser l'interligne de la config
                                         const lineSpacing = currentConfig.lineSpacing;
                                         
                                         refrainSlide.addText(cleanTextForPPT(block.text), {
-                                            x: currentConfig.textX || 0.5,
-                                            y: currentConfig.textY,
-                                            w: currentConfig.textW || 9,
-                                            h: currentConfig.textH,
+                                            placeholder: 'paroles',
+                                            lang: 'fr-FR',
                                             fontSize: block.fontSize,
-                                            color: 'FFFFFF',
-                                            bold: true,
-                                            align: 'center',
-                                            valign: 'top',
                                             lineSpacing: lineSpacing
                                         });
                                     }
@@ -1622,17 +1737,22 @@ Donne-nous la paix.`
                                     📍 Modèle de présentation
                                 </label>
                                 <select id="modeleSelect" class="form-input" style="width: 100%;">
-                                    <option value="mazan">Église de Mazan (Police 40)</option>
-                                    <option value="caromb">Église de Caromb (Police 55)</option>
+                                    <option value="caromb" ${this.modele === 'caromb' ? 'selected' : ''}>Église de Caromb (Police 55)</option>
+                                    <option value="mazan" ${this.modele === 'mazan' ? 'selected' : ''}>Église de Mazan (Police 40)</option>
                                 </select>
                             </div>
 
                             ${selectedChantsData.length > 0 ? `
                                 <div class="selected-list">
                                     ${selectedChantsData.map((chant, index) => `
-                                        <div class="selected-item">
-                                            <div>
+                                        <div class="selected-item" draggable="true" data-drag-id="${chant.id}" title="Glisser pour réordonner">
+                                            <span class="drag-handle" aria-hidden="true">⋮⋮</span>
+                                            <div class="selected-title">
                                                 <strong>${index + 1}.</strong> ${chant.titre}
+                                            </div>
+                                            <div class="move-btns">
+                                                <button class="move-btn" data-move-id="${chant.id}" data-move-dir="-1" title="Monter" ${index === 0 ? 'disabled' : ''}>▲</button>
+                                                <button class="move-btn" data-move-id="${chant.id}" data-move-dir="1" title="Descendre" ${index === selectedChantsData.length - 1 ? 'disabled' : ''}>▼</button>
                                             </div>
                                             <button class="remove-btn" data-remove-id="${chant.id}">×</button>
                                         </div>
@@ -2007,6 +2127,64 @@ Donne-nous la paix.`
                         this.removeFromSelection(btn.dataset.removeId);
                     });
                 });
+
+                // Réordonnancement par flèches ▲ ▼
+                document.querySelectorAll('[data-move-id]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.moveSelectionBy(btn.dataset.moveId, parseInt(btn.dataset.moveDir, 10));
+                    });
+                });
+
+                // Réordonnancement par glisser-déposer
+                const dragItems = document.querySelectorAll('.selected-item[data-drag-id]');
+                const clearDropMarks = () => {
+                    dragItems.forEach(el => el.classList.remove('drop-before', 'drop-after'));
+                };
+
+                dragItems.forEach(item => {
+                    item.addEventListener('dragstart', (e) => {
+                        this.draggedChantId = item.dataset.dragId;
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', this.draggedChantId); // requis par Firefox
+                        item.classList.add('dragging');
+                    });
+
+                    item.addEventListener('dragover', (e) => {
+                        if (!this.draggedChantId) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        const rect = item.getBoundingClientRect();
+                        const after = (e.clientY - rect.top) > rect.height / 2;
+                        clearDropMarks();
+                        if (item.dataset.dragId !== this.draggedChantId) {
+                            item.classList.add(after ? 'drop-after' : 'drop-before');
+                        }
+                    });
+
+                    item.addEventListener('drop', (e) => {
+                        if (!this.draggedChantId) return;
+                        e.preventDefault();
+                        const rect = item.getBoundingClientRect();
+                        const after = (e.clientY - rect.top) > rect.height / 2;
+                        const movedId = this.draggedChantId;
+                        this.draggedChantId = null;
+                        this.moveSelection(movedId, item.dataset.dragId, after);
+                    });
+
+                    item.addEventListener('dragend', () => {
+                        this.draggedChantId = null;
+                        item.classList.remove('dragging');
+                        clearDropMarks();
+                    });
+                });
+
+                // Conserver le modèle choisi (sinon il est réinitialisé à chaque rendu)
+                const modeleSelectEl = document.getElementById('modeleSelect');
+                if (modeleSelectEl) {
+                    modeleSelectEl.addEventListener('change', (e) => {
+                        this.modele = e.target.value;
+                    });
+                }
 
                 // Génération PPT
                 const generatePPTBtn = document.getElementById('generatePPTBtn');
